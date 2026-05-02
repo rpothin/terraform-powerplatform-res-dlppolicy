@@ -20,4 +20,4 @@ This module enforces a zero-trust baseline:
 
 - Power Platform Terraform provider `~> 4.0`
 - A service principal with the **Power Platform Administrator** role
-- OIDC authentication configured (`ARM_USE_OIDC=true`, `POWER_PLATFORM_TENANT_ID`, `POWER_PLATFORM_CLIENT_ID`)
+- OIDC authentication configured (`POWER_PLATFORM_USE_OIDC=true`, `POWER_PLATFORM_TENANT_ID`, `POWER_PLATFORM_CLIENT_ID`)

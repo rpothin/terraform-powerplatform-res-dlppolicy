@@ -22,10 +22,10 @@ resource "powerplatform_data_loss_prevention_policy" "this" {
 
 check "business_connector_ids_exist" {
   assert {
-    condition = alltrue([
-      for bc in var.business_connectors :
-      contains([for c in data.powerplatform_connectors.all.connectors : c.id], bc.id)
-    ])
+    condition = length(setsubtract(
+      local.business_connector_ids,
+      toset([for c in data.powerplatform_connectors.all.connectors : c.id])
+    )) == 0
     error_message = "One or more business_connectors IDs do not exist in the list of available connectors. Verify the connector IDs are correct and the PowerPlatform provider has access to list connectors."
   }
 }
