@@ -22,14 +22,14 @@ variable "environment_type" {
 }
 
 variable "environments" {
-  description = "A set of environment IDs to include or exclude depending on environment_type. Required when environment_type is OnlyEnvironments or ExceptEnvironments. Each value must be a valid lowercase UUID."
-  type        = set(string)
+  description = "A list of environment IDs to include or exclude depending on environment_type. Required when environment_type is OnlyEnvironments or ExceptEnvironments. Each value must be a valid UUID (case-insensitive). Use lower() in HCL to normalise IDs copied from the Power Platform admin center."
+  type        = list(string)
   nullable    = false
   default     = []
 
   validation {
-    condition     = alltrue([for e in var.environments : can(regex("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", e))])
-    error_message = "All environment IDs must be valid lowercase UUIDs in the format xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx."
+    condition     = alltrue([for e in var.environments : can(regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", e))])
+    error_message = "All environment IDs must be valid UUIDs in the format xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx (case-insensitive)."
   }
 }
 
@@ -90,6 +90,11 @@ variable "custom_connectors_patterns" {
   validation {
     condition     = alltrue([for p in var.custom_connectors_patterns : p.order > 0])
     error_message = "Each custom connector pattern order must be a positive integer."
+  }
+
+  validation {
+    condition     = alltrue([for p in var.custom_connectors_patterns : p.host_url_pattern != "*"])
+    error_message = "The wildcard pattern '*' is reserved and is always appended automatically as the final Blocked rule. Remove it from custom_connectors_patterns."
   }
 
   validation {

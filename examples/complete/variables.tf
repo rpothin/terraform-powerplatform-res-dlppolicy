@@ -11,8 +11,8 @@ variable "environment_type" {
 }
 
 variable "environments" {
-  description = "A set of environment IDs the policy applies to."
-  type        = set(string)
+  description = "A list of environment IDs the policy applies to."
+  type        = list(string)
   default = [
     "00000000-0000-0000-0000-000000000001",
     "00000000-0000-0000-0000-000000000002",

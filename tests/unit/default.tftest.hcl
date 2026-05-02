@@ -102,10 +102,6 @@ run "except_environments_scope" {
 }
 
 # ---------------------------------------------------------------------------
-# Connector classification tests (connector data overridden per run)
-# ---------------------------------------------------------------------------
-
-# ---------------------------------------------------------------------------
 # Connector classification tests
 # ---------------------------------------------------------------------------
 
@@ -116,13 +112,18 @@ run "non_business_connectors_empty_when_no_connectors_mocked" {
     display_name = "test-policy"
   }
 
-  # Mock provider returns no connectors — non_business_connectors is empty.
-  # In real deployments, the data source returns all connectors and the module
-  # automatically places unblockable ones in this group. Full connector
-  # classification is covered by integration tests.
+  # Mock provider returns no connectors — non_business_connectors and
+  # blocked_connectors are both empty. In real deployments, the data source
+  # returns all connectors and the module automatically classifies them.
+  # Full connector classification is verified by integration tests.
   assert {
     condition     = length(powerplatform_data_loss_prevention_policy.this.non_business_connectors) == 0
     error_message = "non_business_connectors must be empty when the data source returns no connectors."
+  }
+
+  assert {
+    condition     = length(powerplatform_data_loss_prevention_policy.this.blocked_connectors) == 0
+    error_message = "blocked_connectors must be empty when the data source returns no connectors."
   }
 }
 
@@ -136,11 +137,19 @@ run "business_connector_excluded_from_non_business" {
     ]
   }
 
-  # shared_logicflows is unblockable but listed as Business — must NOT appear in NonBusiness.
+  # The mock provider returns no connectors, so non_business_connectors is always
+  # empty — this assertion is vacuously true. The actual exclusion logic (that a
+  # connector in business_connectors is filtered out of non_business_connectors)
+  # is validated by integration tests where the real data source returns connectors.
+  # The check block also fires (expected) because the mock returns no connectors.
   assert {
     condition     = !contains([for c in powerplatform_data_loss_prevention_policy.this.non_business_connectors : c.id], "/providers/Microsoft.PowerApps/apis/shared_logicflows")
     error_message = "A connector added to business_connectors must not appear in the NonBusiness group."
   }
+
+  expect_failures = [
+    check.business_connector_ids_exist,
+  ]
 }
 
 # ---------------------------------------------------------------------------
@@ -237,5 +246,39 @@ run "rejects_zero_order_in_custom_pattern" {
   expect_failures = [
     var.custom_connectors_patterns,
   ]
+}
+
+run "rejects_wildcard_in_custom_pattern" {
+  command = plan
+
+  variables {
+    display_name = "test-policy"
+    custom_connectors_patterns = [
+      {
+        order            = 1
+        host_url_pattern = "*"
+        data_group       = "Business"
+      }
+    ]
+  }
+
+  expect_failures = [
+    var.custom_connectors_patterns,
+  ]
+}
+
+run "accepts_uppercase_environment_uuid" {
+  command = plan
+
+  variables {
+    display_name     = "test-policy"
+    environment_type = "OnlyEnvironments"
+    environments     = ["00000000-0000-0000-0000-00000000000A"]
+  }
+
+  assert {
+    condition     = powerplatform_data_loss_prevention_policy.this.environment_type == "OnlyEnvironments"
+    error_message = "Uppercase UUIDs must be accepted for environment IDs."
+  }
 }
 

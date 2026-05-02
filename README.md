@@ -105,9 +105,9 @@ Default: `"AllEnvironments"`
 
 ### <a name="input_environments"></a> [environments](#input\_environments)
 
-Description: A set of environment IDs to include or exclude depending on environment\_type. Required when environment\_type is OnlyEnvironments or ExceptEnvironments. Each value must be a valid lowercase UUID.
+Description: A list of environment IDs to include or exclude depending on environment\_type. Required when environment\_type is OnlyEnvironments or ExceptEnvironments. Each value must be a valid UUID (case-insensitive). Use lower() in HCL to normalise IDs copied from the Power Platform admin center.
 
-Type: `set(string)`
+Type: `list(string)`
 
 Default: `[]`
 

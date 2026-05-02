@@ -113,9 +113,9 @@ Default: `"OnlyEnvironments"`
 
 ### <a name="input_environments"></a> [environments](#input\_environments)
 
-Description: A set of environment IDs the policy applies to.
+Description: A list of environment IDs the policy applies to.
 
-Type: `set(string)`
+Type: `list(string)`
 
 Default:
 
