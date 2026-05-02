@@ -12,8 +12,9 @@
 # Resources are automatically destroyed after test completion.
 
 variables {
-  # Sandbox environment ID placeholder — override with a real environment ID.
-  # Example: TF_VAR_environments='["xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"]'
+  # Placeholder environment ID — overridden at CI runtime via TF_VAR_environments,
+  # which is set from the INTEGRATION_TEST_ENVIRONMENT_ID repository variable.
+  # To run locally, export: TF_VAR_environments='["<your-env-id>"]'
   environments = ["00000000-0000-0000-0000-000000000001"]
 }
 

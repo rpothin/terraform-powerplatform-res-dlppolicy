@@ -129,3 +129,4 @@ jobs:
           POWER_PLATFORM_USE_OIDC: "true"
           POWER_PLATFORM_TENANT_ID: ${{ secrets.POWER_PLATFORM_TENANT_ID }}
           POWER_PLATFORM_CLIENT_ID: ${{ secrets.POWER_PLATFORM_CLIENT_ID }}
+          TF_VAR_environments: '["${{ vars.INTEGRATION_TEST_ENVIRONMENT_ID }}"]'
