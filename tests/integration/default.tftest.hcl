@@ -4,19 +4,13 @@
 #   POWER_PLATFORM_USE_OIDC=true                   (signals OIDC mode for the Power Platform provider)
 #   POWER_PLATFORM_TENANT_ID=<your-tenant-id>
 #   POWER_PLATFORM_CLIENT_ID=<your-client-id>
+#   TF_VAR_environments='["<your-sandbox-env-id>"]'  must be exported before running
+#   (set INTEGRATION_TEST_ENVIRONMENT_ID repository variable for CI)
 #
 # These tests target OnlyEnvironments scope to avoid applying policies tenant-wide
 # during test runs. Use a dedicated sandbox environment — DO NOT run against production.
-# Override `environments` via TF_VAR_environments or a .tfvars file before running.
 #
 # Resources are automatically destroyed after test completion.
-
-variables {
-  # Placeholder environment ID — overridden at CI runtime via TF_VAR_environments,
-  # which is set from the INTEGRATION_TEST_ENVIRONMENT_ID repository variable.
-  # To run locally, export: TF_VAR_environments='["<your-env-id>"]'
-  environments = ["00000000-0000-0000-0000-000000000001"]
-}
 
 run "creates_environment_scoped_policy" {
   command = apply
