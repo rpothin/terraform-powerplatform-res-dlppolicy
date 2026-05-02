@@ -302,3 +302,68 @@ run "accepts_uppercase_environment_uuid" {
   }
 }
 
+# ---------------------------------------------------------------------------
+# default_connectors_classification variable tests
+# ---------------------------------------------------------------------------
+
+run "rejects_invalid_default_connectors_classification" {
+  command = plan
+
+  variables {
+    display_name                      = "test-policy"
+    environment_type                  = "AllEnvironments"
+    default_connectors_classification = "Invalid"
+  }
+
+  expect_failures = [
+    var.default_connectors_classification,
+  ]
+}
+
+run "accepts_non_blocked_default_classification" {
+  command = plan
+
+  variables {
+    display_name                      = "test-policy"
+    environment_type                  = "AllEnvironments"
+    default_connectors_classification = "General"
+  }
+
+  assert {
+    condition     = powerplatform_data_loss_prevention_policy.this.default_connectors_classification == "General"
+    error_message = "default_connectors_classification = General must be accepted and passed through to the resource."
+  }
+}
+
+# ---------------------------------------------------------------------------
+# Lifecycle precondition tests
+# ---------------------------------------------------------------------------
+
+run "rejects_only_environments_without_environments_list" {
+  command = plan
+
+  variables {
+    display_name     = "test-policy"
+    environment_type = "OnlyEnvironments"
+    # environments intentionally omitted — should trigger the lifecycle precondition
+  }
+
+  expect_failures = [
+    powerplatform_data_loss_prevention_policy.this,
+  ]
+}
+
+run "rejects_except_environments_without_environments_list" {
+  command = plan
+
+  variables {
+    display_name     = "test-policy"
+    environment_type = "ExceptEnvironments"
+    # environments intentionally omitted — should trigger the lifecycle precondition
+  }
+
+  expect_failures = [
+    powerplatform_data_loss_prevention_policy.this,
+  ]
+}
+

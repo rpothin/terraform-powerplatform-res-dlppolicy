@@ -97,7 +97,7 @@ Default: `[]`
 
 ### <a name="input_default_connectors_classification"></a> [default\_connectors\_classification](#input\_default\_connectors\_classification)
 
-Description: The classification applied to connectors not explicitly assigned to the Business or NonBusiness groups. Defaults to 'Blocked' for a zero-trust baseline. Set to 'Business' or 'NonBusiness' only when explicitly relaxing the policy.
+Description: The provider-level fallback classification for connectors not returned by the `data.powerplatform_connectors.all` data source (e.g., newly released connectors not yet listed by the API). In practice, all known connectors are explicitly auto-classified by this module: unblockable connectors are placed in the NonBusiness group and all other connectors are placed in the Blocked group. This setting only affects connectors that genuinely slip through the data source. Defaults to 'Blocked' to maintain a zero-trust baseline for unknown connectors. Note: the provider uses 'General' for the NonBusiness group and 'Confidential' for the Business group in this attribute.
 
 Type: `string`
 

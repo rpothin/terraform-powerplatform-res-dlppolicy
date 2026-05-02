@@ -10,14 +10,14 @@ variable "display_name" {
 }
 
 variable "default_connectors_classification" {
-  description = "The classification applied to connectors not explicitly assigned to the Business or NonBusiness groups. Defaults to 'Blocked' for a zero-trust baseline. Set to 'Business' or 'NonBusiness' only when explicitly relaxing the policy."
+  description = "The provider-level fallback classification for connectors not returned by the `data.powerplatform_connectors.all` data source (e.g., newly released connectors not yet listed by the API). In practice, all known connectors are explicitly auto-classified by this module: unblockable connectors are placed in the NonBusiness group and all other connectors are placed in the Blocked group. This setting only affects connectors that genuinely slip through the data source. Defaults to 'Blocked' to maintain a zero-trust baseline for unknown connectors. Note: the provider uses 'General' for the NonBusiness group and 'Confidential' for the Business group in this attribute."
   type        = string
   nullable    = false
   default     = "Blocked"
 
   validation {
-    condition     = contains(["Blocked", "Business", "NonBusiness"], var.default_connectors_classification)
-    error_message = "default_connectors_classification must be one of: Blocked, Business, NonBusiness."
+    condition     = contains(["Blocked", "General", "Confidential"], var.default_connectors_classification)
+    error_message = "default_connectors_classification must be one of: Blocked, General (NonBusiness), Confidential (Business)."
   }
 }
 
