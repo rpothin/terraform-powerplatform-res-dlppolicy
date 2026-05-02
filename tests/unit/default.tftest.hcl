@@ -6,7 +6,8 @@ run "default_connectors_classification_is_blocked" {
   command = plan
 
   variables {
-    display_name = "test-policy"
+    display_name     = "test-policy"
+    environment_type = "AllEnvironments"
   }
 
   assert {
@@ -19,7 +20,8 @@ run "custom_connectors_wildcard_block_is_always_added" {
   command = plan
 
   variables {
-    display_name = "test-policy"
+    display_name     = "test-policy"
+    environment_type = "AllEnvironments"
   }
 
   assert {
@@ -32,7 +34,8 @@ run "custom_connectors_user_pattern_preserved" {
   command = plan
 
   variables {
-    display_name = "test-policy"
+    display_name     = "test-policy"
+    environment_type = "AllEnvironments"
     custom_connectors_patterns = [
       {
         order            = 1
@@ -56,6 +59,21 @@ run "custom_connectors_user_pattern_preserved" {
 # ---------------------------------------------------------------------------
 # Environment scope tests
 # ---------------------------------------------------------------------------
+
+run "default_environment_type_is_only_environments" {
+  command = plan
+
+  variables {
+    display_name = "test-policy"
+    environments = ["00000000-0000-0000-0000-000000000001"]
+    # environment_type intentionally omitted — testing the module default
+  }
+
+  assert {
+    condition     = powerplatform_data_loss_prevention_policy.this.environment_type == "OnlyEnvironments"
+    error_message = "Default environment_type must be 'OnlyEnvironments' to enforce safe-by-default scoping."
+  }
+}
 
 run "all_environments_scope" {
   command = plan
@@ -109,7 +127,8 @@ run "non_business_connectors_empty_when_no_connectors_mocked" {
   command = plan
 
   variables {
-    display_name = "test-policy"
+    display_name     = "test-policy"
+    environment_type = "AllEnvironments"
   }
 
   # Mock provider returns no connectors — non_business_connectors and
@@ -131,7 +150,8 @@ run "business_connector_excluded_from_non_business" {
   command = plan
 
   variables {
-    display_name = "test-policy"
+    display_name     = "test-policy"
+    environment_type = "AllEnvironments"
     business_connectors = [
       { id = "/providers/Microsoft.PowerApps/apis/shared_logicflows" },
     ]

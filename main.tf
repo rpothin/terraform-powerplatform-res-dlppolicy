@@ -20,6 +20,9 @@ resource "powerplatform_data_loss_prevention_policy" "this" {
   }
 }
 
+# Note: `check` blocks emit advisory warnings only — they do NOT block `terraform apply`.
+# If a connector ID is invalid the real failure will come from the provider API at apply time.
+# This check provides early feedback during `terraform plan` to surface typos quickly.
 check "business_connector_ids_exist" {
   assert {
     condition = length(setsubtract(

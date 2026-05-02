@@ -5,14 +5,18 @@ locals {
   # Unblockable connectors not explicitly assigned to the Business group are
   # placed in the NonBusiness group. This ensures the "Blocked" default
   # classification never incorrectly targets connectors that cannot be blocked.
+  # Sorting by ID before toset() ensures a deterministic element order, preventing
+  # spurious "update-in-place" noise in plans when nothing has actually changed.
   non_business_connectors = toset([
-    for c in data.powerplatform_connectors.all.connectors : {
-      id                           = c.id
+    for c_id in sort([
+      for c in data.powerplatform_connectors.all.connectors : c.id
+      if c.unblockable && !contains(local.business_connector_ids, c.id)
+      ]) : {
+      id                           = c_id
       default_action_rule_behavior = ""
       action_rules                 = []
       endpoint_rules               = []
     }
-    if c.unblockable && !contains(local.business_connector_ids, c.id)
   ])
 
   # Blockable connectors not assigned to the Business group are explicitly
@@ -20,13 +24,15 @@ locals {
   # appear in exactly one group — relying on default_connectors_classification
   # alone is insufficient and will cause a provider error.
   blocked_connectors = toset([
-    for c in data.powerplatform_connectors.all.connectors : {
-      id                           = c.id
+    for c_id in sort([
+      for c in data.powerplatform_connectors.all.connectors : c.id
+      if !c.unblockable && !contains(local.business_connector_ids, c.id)
+      ]) : {
+      id                           = c_id
       default_action_rule_behavior = ""
       action_rules                 = []
       endpoint_rules               = []
     }
-    if !c.unblockable && !contains(local.business_connector_ids, c.id)
   ])
 
   # Highest order value in user-supplied custom connector patterns (0 when none).

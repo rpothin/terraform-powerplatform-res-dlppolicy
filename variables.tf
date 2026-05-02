@@ -10,10 +10,10 @@ variable "display_name" {
 }
 
 variable "environment_type" {
-  description = "The environment scope for the policy. 'AllEnvironments' applies the policy to all environments, 'OnlyEnvironments' restricts it to the specified environments, and 'ExceptEnvironments' applies it to all environments except the specified ones."
+  description = "The environment scope for the policy. 'OnlyEnvironments' (default) restricts the policy to the environments listed in `environments`. 'ExceptEnvironments' applies it to all environments except those listed. 'AllEnvironments' applies the policy tenant-wide — this is the most dangerous scope, requires Global Admin, and takes effect immediately across the entire tenant."
   type        = string
   nullable    = false
-  default     = "AllEnvironments"
+  default     = "OnlyEnvironments"
 
   validation {
     condition     = contains(["AllEnvironments", "ExceptEnvironments", "OnlyEnvironments"], var.environment_type)

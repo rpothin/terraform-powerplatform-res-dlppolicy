@@ -5,15 +5,24 @@
 #   POWER_PLATFORM_TENANT_ID=<your-tenant-id>
 #   POWER_PLATFORM_CLIENT_ID=<your-client-id>
 #
-# These tests create real resources against a Power Platform tenant.
+# These tests target OnlyEnvironments scope to avoid applying policies tenant-wide
+# during test runs. Use a dedicated sandbox environment — DO NOT run against production.
+# Override `environments` via TF_VAR_environments or a .tfvars file before running.
+#
 # Resources are automatically destroyed after test completion.
 
-run "creates_tenant_wide_policy" {
+variables {
+  # Sandbox environment ID placeholder — override with a real environment ID.
+  # Example: TF_VAR_environments='["xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"]'
+  environments = ["00000000-0000-0000-0000-000000000001"]
+}
+
+run "creates_environment_scoped_policy" {
   command = apply
 
   variables {
     display_name     = "tftest-basic-dlp-policy"
-    environment_type = "AllEnvironments"
+    environment_type = "OnlyEnvironments"
   }
 
   assert {
@@ -37,7 +46,7 @@ run "creates_policy_with_business_connectors" {
 
   variables {
     display_name     = "tftest-complete-dlp-policy"
-    environment_type = "AllEnvironments"
+    environment_type = "OnlyEnvironments"
     business_connectors = [
       { id = "/providers/Microsoft.PowerApps/apis/shared_sharepointonline" },
       { id = "/providers/Microsoft.PowerApps/apis/shared_teams" },

@@ -6,5 +6,7 @@
 module "this" {
   source = "../../" # local path for development — update to registry address before publishing
 
-  display_name = var.display_name
+  display_name     = var.display_name
+  environment_type = var.environment_type
+  environments     = var.environments
 }
