@@ -1,11 +1,5 @@
-variable "name" {
-  description = "The name of the resource."
+variable "display_name" {
+  description = "The display name of the DLP policy."
   type        = string
-  default     = "example-basic"
-}
-
-variable "location" {
-  description = "The geographic location for the resource."
-  type        = string
-  default     = "unitedstates"
+  default     = "example-basic-dlp-policy"
 }

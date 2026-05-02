@@ -1,9 +1,9 @@
 output "resource_id" {
-  description = "The ID of the managed resource."
+  description = "The unique ID (GUID) of the DLP policy."
   value       = module.this.resource_id
 }
 
-output "name" {
-  description = "The name of the managed resource."
-  value       = module.this.name
+output "display_name" {
+  description = "The display name of the DLP policy."
+  value       = module.this.display_name
 }
