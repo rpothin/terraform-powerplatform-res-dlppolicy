@@ -1,4 +1,4 @@
-# Power Platform DLP Policy Module (`res-dlppolicy`) - test
+# Power Platform DLP Policy Module (`res-dlppolicy`)
 
 [![Terraform Registry](https://img.shields.io/badge/Terraform-Registry-blue.svg)](https://registry.terraform.io/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
