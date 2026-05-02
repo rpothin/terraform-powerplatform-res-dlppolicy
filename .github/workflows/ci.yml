@@ -1,0 +1,131 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  merge_group:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    name: Terraform Format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@5e8dbf3c6d9deaf4193ca7a8fb23f2ac83bb6c85 # v4.0.0
+
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive
+
+  validate:
+    name: Terraform Validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@5e8dbf3c6d9deaf4193ca7a8fb23f2ac83bb6c85 # v4.0.0
+        with:
+          terraform_wrapper: false
+
+      - name: Terraform Validate
+        run: make validate
+
+  docs:
+    name: Documentation Freshness
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup Terraform Docs
+        run: |
+          TFDOCS_VERSION="v0.21.0"
+          TFDOCS_PKG="terraform-docs-${TFDOCS_VERSION}-linux-amd64.tar.gz"
+          curl -sSLo "${TFDOCS_PKG}" "https://github.com/terraform-docs/terraform-docs/releases/download/${TFDOCS_VERSION}/${TFDOCS_PKG}"
+          curl -sSLo terraform-docs.sha256sum "https://github.com/terraform-docs/terraform-docs/releases/download/${TFDOCS_VERSION}/terraform-docs-${TFDOCS_VERSION}.sha256sum"
+          grep "${TFDOCS_PKG}" terraform-docs.sha256sum | sha256sum -c
+          tar -xzf "${TFDOCS_PKG}" terraform-docs
+          chmod +x terraform-docs
+          sudo mv terraform-docs /usr/local/bin/
+          rm -f "${TFDOCS_PKG}" terraform-docs.sha256sum
+
+      - name: Generate Docs
+        run: |
+          terraform-docs .
+          for dir in examples/*/; do
+            terraform-docs "$dir"
+          done
+
+      - name: Check for Changes
+        run: |
+          if ! git diff --exit-code; then
+            echo "::error::Documentation is out of date. Run 'terraform-docs' for root and example directories, then commit the changes."
+            exit 1
+          fi
+
+  security:
+    name: Trivy Security Scan
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Run Trivy IaC Scanner
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # 0.36.0
+        with:
+          scan-type: config
+          scan-ref: .
+          severity: HIGH,CRITICAL
+          exit-code: "0"
+          version: "v0.69.3"
+
+  unit:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@5e8dbf3c6d9deaf4193ca7a8fb23f2ac83bb6c85 # v4.0.0
+        with:
+          terraform_wrapper: false
+
+      - name: Run Unit Tests
+        run: make test-unit
+
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    if: vars.ENABLE_INTEGRATION_TESTS == 'true'
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@5e8dbf3c6d9deaf4193ca7a8fb23f2ac83bb6c85 # v4.0.0
+        with:
+          terraform_wrapper: false
+
+      - name: Run Integration Tests
+        run: make test-integration
+        env:
+          POWER_PLATFORM_USE_OIDC: "true"
+          POWER_PLATFORM_TENANT_ID: ${{ secrets.POWER_PLATFORM_TENANT_ID }}
+          POWER_PLATFORM_CLIENT_ID: ${{ secrets.POWER_PLATFORM_CLIENT_ID }}

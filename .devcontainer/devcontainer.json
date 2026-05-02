@@ -1,0 +1,34 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/ubuntu
+{
+	"name": "Power Platform Terraform Module",
+	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
+	"image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+	"features": {
+		"ghcr.io/devcontainers/features/azure-cli:1": {},
+		"ghcr.io/devcontainers/features/copilot-cli:1": {},
+		"ghcr.io/devcontainers/features/git-lfs:1": {},
+		"ghcr.io/devcontainers/features/github-cli:1": {},
+		"ghcr.io/devcontainers/features/terraform:1": {}
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"yzhang.markdown-all-in-one",
+				"hashicorp.terraform",
+				"hashicorp.hcl",
+				"editorconfig.editorconfig",
+				"aquasecurityofficial.trivy-vulnerability-scanner"
+			]
+		}
+	},
+
+	// Install terraform-docs (latest stable) and trivy (pinned version with checksum verification) after container creation.
+	// Object form runs both installs in parallel and independently — a failure in one does not block the other.
+	// All temp files go to /tmp to avoid polluting the workspace directory.
+	// Checksum verification uses a pipe instead of bash process substitution so it works with any POSIX shell.
+	"postCreateCommand": {
+		"install-terraform-docs": "TFDOCS_VERSION=$(curl -sSL https://api.github.com/repos/terraform-docs/terraform-docs/releases/latest | grep '\"tag_name\"' | cut -d'\"' -f4) && OS=$(uname | tr '[:upper:]' '[:lower:]') && ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/') && curl -sSLo /tmp/terraform-docs.tar.gz \"https://github.com/terraform-docs/terraform-docs/releases/download/${TFDOCS_VERSION}/terraform-docs-${TFDOCS_VERSION}-${OS}-${ARCH}.tar.gz\" && tar -xzf /tmp/terraform-docs.tar.gz -C /tmp terraform-docs && chmod +x /tmp/terraform-docs && sudo mv /tmp/terraform-docs /usr/local/bin/ && rm /tmp/terraform-docs.tar.gz",
+		"install-trivy": "TRIVY_VERSION='0.69.3' && TRIVY_PKG=\"trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz\" && curl -sSLo \"/tmp/${TRIVY_PKG}\" \"https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/${TRIVY_PKG}\" && curl -sSLo /tmp/trivy_checksums.txt \"https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_checksums.txt\" && grep \"${TRIVY_PKG}\" /tmp/trivy_checksums.txt | (cd /tmp && sha256sum -c) && tar -xzf \"/tmp/${TRIVY_PKG}\" -C /tmp trivy && chmod +x /tmp/trivy && sudo mv /tmp/trivy /usr/local/bin/ && rm \"/tmp/${TRIVY_PKG}\" /tmp/trivy_checksums.txt"
+	}
+}

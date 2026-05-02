@@ -1,0 +1,38 @@
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfvars
+!*.auto.tfvars
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+# Terraform lockfile — each derived repo should generate its own lockfile
+# for its platform. Remove this line if you want to commit the lockfile.
+.terraform.lock.hcl
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Patched provider build artifacts
+.patched-provider/
+
+# Bundled Go toolchain (used locally to build patched provider — never commit)
+go.tar.gz
