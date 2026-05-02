@@ -95,6 +95,14 @@ set(object({
 
 Default: `[]`
 
+### <a name="input_default_connectors_classification"></a> [default\_connectors\_classification](#input\_default\_connectors\_classification)
+
+Description: The classification applied to connectors not explicitly assigned to the Business or NonBusiness groups. Defaults to 'Blocked' for a zero-trust baseline. Set to 'Business' or 'NonBusiness' only when explicitly relaxing the policy.
+
+Type: `string`
+
+Default: `"Blocked"`
+
 ### <a name="input_environment_type"></a> [environment\_type](#input\_environment\_type)
 
 Description: The environment scope for the policy. 'OnlyEnvironments' (default) restricts the policy to the environments listed in `environments`. 'ExceptEnvironments' applies it to all environments except those listed. 'AllEnvironments' applies the policy tenant-wide — this is the most dangerous scope, requires Global Admin, and takes effect immediately across the entire tenant.

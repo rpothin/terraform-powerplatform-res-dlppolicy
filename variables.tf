@@ -9,6 +9,19 @@ variable "display_name" {
   }
 }
 
+variable "default_connectors_classification" {
+  description = "The classification applied to connectors not explicitly assigned to the Business or NonBusiness groups. Defaults to 'Blocked' for a zero-trust baseline. Set to 'Business' or 'NonBusiness' only when explicitly relaxing the policy."
+  type        = string
+  nullable    = false
+  default     = "Blocked"
+
+  validation {
+    condition     = contains(["Blocked", "Business", "NonBusiness"], var.default_connectors_classification)
+    error_message = "default_connectors_classification must be one of: Blocked, Business, NonBusiness."
+  }
+}
+
+
 variable "environment_type" {
   description = "The environment scope for the policy. 'OnlyEnvironments' (default) restricts the policy to the environments listed in `environments`. 'ExceptEnvironments' applies it to all environments except those listed. 'AllEnvironments' applies the policy tenant-wide — this is the most dangerous scope, requires Global Admin, and takes effect immediately across the entire tenant."
   type        = string

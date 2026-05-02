@@ -2,7 +2,7 @@ data "powerplatform_connectors" "all" {}
 
 resource "powerplatform_data_loss_prevention_policy" "this" {
   display_name                      = var.display_name
-  default_connectors_classification = "Blocked"
+  default_connectors_classification = var.default_connectors_classification
   environment_type                  = var.environment_type
   environments                      = sort(var.environments)
 
