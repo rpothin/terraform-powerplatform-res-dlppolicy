@@ -97,11 +97,11 @@ Default: `[]`
 
 ### <a name="input_environment_type"></a> [environment\_type](#input\_environment\_type)
 
-Description: The environment scope for the policy. 'AllEnvironments' applies the policy to all environments, 'OnlyEnvironments' restricts it to the specified environments, and 'ExceptEnvironments' applies it to all environments except the specified ones.
+Description: The environment scope for the policy. 'OnlyEnvironments' (default) restricts the policy to the environments listed in `environments`. 'ExceptEnvironments' applies it to all environments except those listed. 'AllEnvironments' applies the policy tenant-wide — this is the most dangerous scope, requires Global Admin, and takes effect immediately across the entire tenant.
 
 Type: `string`
 
-Default: `"AllEnvironments"`
+Default: `"OnlyEnvironments"`
 
 ### <a name="input_environments"></a> [environments](#input\_environments)
 
@@ -118,6 +118,10 @@ The following outputs are exported:
 ### <a name="output_display_name"></a> [display\_name](#output\_display\_name)
 
 Description: The display name of the DLP policy.
+
+### <a name="output_resource"></a> [resource](#output\_resource)
+
+Description: The full DLP policy resource object. Exposes all provider-managed attributes not surfaced by dedicated outputs.
 
 ### <a name="output_resource_id"></a> [resource\_id](#output\_resource\_id)
 

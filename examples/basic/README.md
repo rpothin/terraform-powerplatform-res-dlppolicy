@@ -5,10 +5,14 @@
 This example demonstrates the minimal configuration required to create a DLP policy.
 
 The policy will:
-- Apply to **all environments** in the tenant
+- Apply to **all environments** in the tenant (`environment_type = "AllEnvironments"` — requires Global Admin and takes effect tenant-wide immediately)
 - Block all connectors by default (zero-trust baseline)
 - Automatically place unblockable connectors in the NonBusiness group
 - Block all custom connectors via a wildcard catch-all rule
+
+> **Note:** The module defaults to `OnlyEnvironments` (safer). This example explicitly sets
+> `AllEnvironments` to demonstrate tenant-wide scope. For scoped policies, use `OnlyEnvironments`
+> with a list of target environment IDs.
 
 <!-- markdownlint-disable MD033 -->
 ## Requirements
@@ -39,6 +43,22 @@ Description: The display name of the DLP policy.
 Type: `string`
 
 Default: `"example-basic-dlp-policy"`
+
+### <a name="input_environment_type"></a> [environment\_type](#input\_environment\_type)
+
+Description: The environment scope for the policy. Defaults to 'AllEnvironments' to demonstrate tenant-wide scope in this example. For production use, prefer 'OnlyEnvironments' with explicit environment IDs.
+
+Type: `string`
+
+Default: `"AllEnvironments"`
+
+### <a name="input_environments"></a> [environments](#input\_environments)
+
+Description: A list of environment IDs. Not required when environment\_type is 'AllEnvironments'.
+
+Type: `list(string)`
+
+Default: `[]`
 
 ## Outputs
 
