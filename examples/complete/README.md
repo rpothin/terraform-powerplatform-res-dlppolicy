@@ -144,28 +144,23 @@ The following Modules are called:
 
 ### <a name="module_this"></a> [this](#module\_this)
 
-Source: ../../
+Source: rpothin/dlppolicy/powerplatform
 
-Version:
-
-<!-- TODO (before publishing to Terraform Registry): Replace the relative links below
-     with absolute GitHub URLs, e.g.:
-       See [CONTRIBUTING.md](https://github.com/<OWNER>/<REPO>/blob/main/CONTRIBUTING.md)
-     Relative paths work on GitHub but 404 on the Terraform Registry. -->
+Version: ~> 0.1
 
 ## Contributing
 
-See [CONTRIBUTING.md](../../CONTRIBUTING.md) for contribution guidelines.
+See [CONTRIBUTING.md](https://github.com/rpothin/terraform-powerplatform-res-dlppolicy/blob/main/CONTRIBUTING.md) for contribution guidelines.
 
 ## Code of Conduct
 
-See [CODE\_OF\_CONDUCT.md](../../CODE\_OF\_CONDUCT.md).
+See [CODE\_OF\_CONDUCT.md](https://github.com/rpothin/terraform-powerplatform-res-dlppolicy/blob/main/CODE_OF_CONDUCT.md).
 
 ## Support
 
-See [SUPPORT.md](../../SUPPORT.md) for support information.
+See [SUPPORT.md](https://github.com/rpothin/terraform-powerplatform-res-dlppolicy/blob/main/SUPPORT.md) for support information.
 
 ## License
 
-This project is licensed under the MIT License — see [LICENSE](../../LICENSE) for details.
+This project is licensed under the MIT License — see [LICENSE](https://github.com/rpothin/terraform-powerplatform-res-dlppolicy/blob/main/LICENSE) for details.
 <!-- END_TF_DOCS -->
