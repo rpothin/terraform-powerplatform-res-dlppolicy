@@ -110,7 +110,7 @@ jobs:
   integration:
     name: Integration Tests
     runs-on: ubuntu-latest
-    if: vars.ENABLE_INTEGRATION_TESTS == 'true'
+    if: vars.ENABLE_INTEGRATION_TESTS == 'true' && github.actor != 'dependabot[bot]'
     permissions:
       contents: read
       id-token: write
