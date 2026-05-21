@@ -144,9 +144,9 @@ The following Modules are called:
 
 ### <a name="module_this"></a> [this](#module\_this)
 
-Source: rpothin/dlppolicy/powerplatform
+Source: rpothin/res-dlppolicy/powerplatform
 
-Version: ~> 0.1
+Version:
 
 ## Contributing
 
