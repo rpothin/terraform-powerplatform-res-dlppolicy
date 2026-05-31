@@ -130,3 +130,13 @@ jobs:
           POWER_PLATFORM_TENANT_ID: ${{ secrets.POWER_PLATFORM_TENANT_ID }}
           POWER_PLATFORM_CLIENT_ID: ${{ secrets.POWER_PLATFORM_CLIENT_ID }}
           TF_VAR_environments: '["${{ vars.INTEGRATION_TEST_ENVIRONMENT_ID }}"]'
+
+      - name: Run connectors_only Integration Tests
+        if: vars.INTEGRATION_TEST_EXISTING_POLICY_ID != ''
+        run: make test-integration-connectors-only
+        env:
+          POWER_PLATFORM_USE_OIDC: "true"
+          POWER_PLATFORM_TENANT_ID: ${{ secrets.POWER_PLATFORM_TENANT_ID }}
+          POWER_PLATFORM_CLIENT_ID: ${{ secrets.POWER_PLATFORM_CLIENT_ID }}
+          TF_VAR_environments: '["${{ vars.INTEGRATION_TEST_ENVIRONMENT_ID }}"]'
+          TF_VAR_existing_policy_id: ${{ vars.INTEGRATION_TEST_EXISTING_POLICY_ID }}

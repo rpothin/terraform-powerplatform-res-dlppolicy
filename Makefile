@@ -1,4 +1,4 @@
-.PHONY: fmt validate init test test-unit test-integration docs lint security-scan check-all
+.PHONY: fmt validate init test test-unit test-integration test-integration-connectors-only docs lint security-scan check-all
 
 fmt:
 	terraform fmt -recursive
@@ -16,6 +16,9 @@ test-unit: init
 
 test-integration: init
 	terraform test -test-directory=tests/integration
+
+test-integration-connectors-only: init
+	terraform test -test-directory=tests/integration-connectors-only
 
 docs:
 	terraform-docs .

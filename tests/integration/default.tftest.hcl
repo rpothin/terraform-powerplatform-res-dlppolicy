@@ -11,6 +11,10 @@
 # during test runs. Use a dedicated sandbox environment — DO NOT run against production.
 #
 # Resources are automatically destroyed after test completion.
+#
+# connectors_only mode integration tests live in tests/integration-connectors-only/
+# and require an additional fixture (TF_VAR_existing_policy_id). Run them separately
+# via 'make test-integration-connectors-only'.
 
 run "creates_environment_scoped_policy" {
   command = apply

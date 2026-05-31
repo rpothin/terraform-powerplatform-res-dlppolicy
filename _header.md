@@ -21,3 +21,59 @@ This module enforces a zero-trust baseline:
 - Power Platform Terraform provider `~> 4.0`
 - A service principal with the **Power Platform Administrator** role
 - OIDC authentication configured (`POWER_PLATFORM_USE_OIDC=true`, `POWER_PLATFORM_TENANT_ID`, `POWER_PLATFORM_CLIENT_ID`)
+
+## Environment Scope Management
+
+The `management_mode` variable controls whether Terraform manages both connectors **and** environment membership, or connectors only.
+
+| Mode | Description |
+|------|-------------|
+| `full` (default) | Terraform is fully authoritative: manages connector classification **and** the policy's environment list. `var.environments` is the source of truth. |
+| `connectors_only` | Terraform manages connector classification only. The environment list is read from the live API on every plan/apply and passed back unchanged — effectively a no-op on environments. Suitable when an external process (Power Automate, PPAC) owns environment membership. Only valid for `OnlyEnvironments` policies. Requires `existing_policy_id`. |
+
+### When to use `connectors_only`
+
+**Context A — IaC transition period:** The organization is progressively onboarding existing DLP policies to Terraform while PPAC or Power Automate flows continue to handle environment membership changes. Using `connectors_only` avoids conflicts during this overlap period.
+
+**Context B — Permanent parallel ownership:** The organization uses Terraform for connector governance but has a permanent, separate process (e.g. an environment provisioning flow) that manages which environments belong to which policy. `connectors_only` allows both systems to coexist without interference.
+
+### Onboarding workflow for new `connectors_only` policies
+
+New policies cannot start directly in `connectors_only` mode because the policy must already exist.
+
+1. **Create** the policy with `management_mode = "full"` and at least one environment in `var.environments`:
+   ```hcl
+   module "dlp_policy" {
+     source           = "..."
+     display_name     = "My Baseline Policy"
+     environment_type = "OnlyEnvironments"
+     environments     = ["<initial-env-id>"]
+   }
+   ```
+2. After `terraform apply`, note the `output.resource_id`.
+3. **Switch** to `connectors_only` mode — from this point Terraform no longer manages the environment list:
+   ```hcl
+   module "dlp_policy" {
+     source             = "..."
+     display_name       = "My Baseline Policy"
+     environment_type   = "OnlyEnvironments"
+     management_mode    = "connectors_only"
+     existing_policy_id = "<resource_id from step 2>"
+   }
+   ```
+   > [!IMPORTANT]
+   > `existing_policy_id` must be a previously captured value (e.g. hardcoded from step 2, or read from remote state). Do **not** reference the same module call's `output.resource_id` here — that would create a Terraform dependency cycle.
+4. Hand off (or continue using) the external process for environment membership.
+
+> [!NOTE]
+> `var.environments` is silently ignored in `connectors_only` mode. If you provide it, the value has no effect on the applied configuration.
+
+> [!NOTE]
+> `existing_policy_id` has no effect in `full` mode. If you set it while `management_mode = "full"` (or when `management_mode` is omitted, since `"full"` is the default), Terraform will emit an advisory warning during `plan` and `apply` but will **not** block the operation. This most commonly happens when switching back from `connectors_only` to `full` — remove `existing_policy_id` from your configuration at that point.
+
+> [!WARNING]
+> `connectors_only` is only valid for `OnlyEnvironments` policies. Using it with `AllEnvironments` or `ExceptEnvironments` will fail with a lifecycle precondition error.
+
+> [!WARNING]
+> **Do not use saved Terraform plans (`terraform apply saved.tfplan`) in `connectors_only` mode.** The environment list is read from the live API at plan time and baked into the saved plan. If the external process changes environment membership between `terraform plan` and `terraform apply`, Terraform will overwrite the live state with the stale plan value. Always run `terraform apply` directly (without a pre-saved plan) in `connectors_only` mode so the API is re-read immediately before each apply.
+

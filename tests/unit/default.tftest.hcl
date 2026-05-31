@@ -367,3 +367,121 @@ run "rejects_except_environments_without_environments_list" {
   ]
 }
 
+# ---------------------------------------------------------------------------
+# management_mode = connectors_only tests
+# ---------------------------------------------------------------------------
+# The mock_provider returns an empty policies list by default. This is sufficient
+# for all precondition-failure tests. The happy-path scenario (connectors_only
+# successfully reads live environments) requires a real provider and is covered
+# by tests/integration/default.tftest.hcl instead.
+# Note: Providing non-empty mock data for the ListNestedAttribute "policies" is
+# not supported in mock_provider blocks because HCL literals produce tuples and
+# function calls (tolist/toset) are not allowed in that context.
+
+run "connectors_only_rejected_for_all_environments" {
+  command = plan
+
+  # Global mock returns a matching policy — only precondition 2 (AllEnvironments) fires.
+  variables {
+    display_name       = "test-policy"
+    environment_type   = "AllEnvironments"
+    management_mode    = "connectors_only"
+    existing_policy_id = "11111111-1111-1111-1111-111111111111"
+  }
+
+  expect_failures = [
+    powerplatform_data_loss_prevention_policy.this,
+  ]
+}
+
+run "connectors_only_rejected_for_except_environments" {
+  command = plan
+
+  # Global mock returns a matching policy — only precondition 2 (ExceptEnvironments) fires.
+  variables {
+    display_name       = "test-policy"
+    environment_type   = "ExceptEnvironments"
+    management_mode    = "connectors_only"
+    existing_policy_id = "11111111-1111-1111-1111-111111111111"
+  }
+
+  expect_failures = [
+    powerplatform_data_loss_prevention_policy.this,
+  ]
+}
+
+run "connectors_only_rejected_without_existing_policy_id" {
+  command = plan
+
+  # existing_policy_id omitted — precondition 3 fires.
+  # Precondition 4 safely short-circuits because existing_policy_id == null.
+  variables {
+    display_name     = "test-policy"
+    environment_type = "OnlyEnvironments"
+    management_mode  = "connectors_only"
+    # existing_policy_id intentionally omitted — should trigger precondition 3
+  }
+
+  expect_failures = [
+    powerplatform_data_loss_prevention_policy.this,
+  ]
+}
+
+run "connectors_only_rejected_when_policy_id_not_found" {
+  command = plan
+
+  # Mock returns empty policies list — any existing_policy_id yields no match, so precondition 4 fires.
+  variables {
+    display_name       = "test-policy"
+    environment_type   = "OnlyEnvironments"
+    management_mode    = "connectors_only"
+    existing_policy_id = "22222222-2222-2222-2222-222222222222"
+  }
+
+  expect_failures = [
+    powerplatform_data_loss_prevention_policy.this,
+  ]
+}
+
+run "rejects_invalid_existing_policy_id_uuid" {
+  command = plan
+
+  variables {
+    display_name       = "test-policy"
+    environment_type   = "AllEnvironments"
+    existing_policy_id = "not-a-valid-uuid"
+  }
+
+  expect_failures = [
+    var.existing_policy_id,
+  ]
+}
+
+run "full_mode_environments_from_var_not_api" {
+  command = plan
+
+  # management_mode = "full" (default) — data source count=0, mock_data default is irrelevant.
+  variables {
+    display_name       = "test-policy"
+    environment_type   = "OnlyEnvironments"
+    management_mode    = "full"
+    existing_policy_id = "11111111-1111-1111-1111-111111111111"
+    environments       = ["aaaaaaaa-0000-0000-0000-000000000001"]
+  }
+
+  assert {
+    condition     = contains(tolist(powerplatform_data_loss_prevention_policy.this.environments), "aaaaaaaa-0000-0000-0000-000000000001")
+    error_message = "full mode must use var.environments as the environment source."
+  }
+
+  assert {
+    condition     = length(powerplatform_data_loss_prevention_policy.this.environments) == 1
+    error_message = "full mode must have exactly 1 environment (from var.environments)."
+  }
+
+  # existing_policy_id is set in full mode — the check advisory should fire.
+  expect_failures = [
+    check.existing_policy_id_unused_in_full_mode,
+  ]
+}
+
