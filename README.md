@@ -70,6 +70,9 @@ New policies cannot start directly in `connectors_only` mode because the policy 
 > [!NOTE]
 > `var.environments` is silently ignored in `connectors_only` mode. If you provide it, the value has no effect on the applied configuration.
 
+> [!NOTE]
+> `existing_policy_id` has no effect in `full` mode. If you set it while `management_mode = "full"` (or when `management_mode` is omitted, since `"full"` is the default), Terraform will emit an advisory warning during `plan` and `apply` but will **not** block the operation. This most commonly happens when switching back from `connectors_only` to `full` — remove `existing_policy_id` from your configuration at that point.
+
 > [!WARNING]
 > `connectors_only` is only valid for `OnlyEnvironments` policies. Using it with `AllEnvironments` or `ExceptEnvironments` will fail with a lifecycle precondition error.
 
