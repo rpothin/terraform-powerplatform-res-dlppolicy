@@ -71,6 +71,9 @@ New policies cannot start directly in `connectors_only` mode because the policy 
 > [!WARNING]
 > `connectors_only` is only valid for `OnlyEnvironments` policies. Using it with `AllEnvironments` or `ExceptEnvironments` will fail with a lifecycle precondition error.
 
+> [!WARNING]
+> **Do not use saved Terraform plans (`terraform apply saved.tfplan`) in `connectors_only` mode.** The environment list is read from the live API at plan time and baked into the saved plan. If the external process changes environment membership between `terraform plan` and `terraform apply`, Terraform will overwrite the live state with the stale plan value. Always run `terraform apply` directly (without a pre-saved plan) in `connectors_only` mode so the API is re-read immediately before each apply.
+
 <!-- markdownlint-disable MD033 -->
 ## Requirements
 

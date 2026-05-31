@@ -7,9 +7,12 @@ locals {
 
   # Zero-or-one-element list of the live policy whose id matches existing_policy_id.
   # A lifecycle precondition guarantees this is non-empty at apply time in connectors_only mode.
+  # Comparison is case-insensitive: GUIDs from the API and from the user may differ in case.
+  # The null guard ensures the lower() call is never applied to a null value when
+  # existing_policy_id is not set (full mode or precondition 3 not yet evaluated).
   _live_matched_policy = [
     for p in local._all_live_policies : p
-    if p.id == var.existing_policy_id
+    if var.existing_policy_id != null && lower(p.id) == lower(var.existing_policy_id)
   ]
 
   # Environment list passed to the resource:
