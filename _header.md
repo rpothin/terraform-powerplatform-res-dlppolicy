@@ -61,6 +61,8 @@ New policies cannot start directly in `connectors_only` mode because the policy 
      existing_policy_id = "<resource_id from step 2>"
    }
    ```
+   > [!IMPORTANT]
+   > `existing_policy_id` must be a previously captured value (e.g. hardcoded from step 2, or read from remote state). Do **not** reference the same module call's `output.resource_id` here — that would create a Terraform dependency cycle.
 4. Hand off (or continue using) the external process for environment membership.
 
 > [!NOTE]

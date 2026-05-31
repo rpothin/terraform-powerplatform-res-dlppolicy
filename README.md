@@ -63,6 +63,8 @@ New policies cannot start directly in `connectors_only` mode because the policy 
      existing_policy_id = "<resource_id from step 2>"
    }
    ```
+   > [!IMPORTANT]
+   > `existing_policy_id` must be a previously captured value (e.g. hardcoded from step 2, or read from remote state). Do **not** reference the same module call's `output.resource_id` here — that would create a Terraform dependency cycle.
 4. Hand off (or continue using) the external process for environment membership.
 
 > [!NOTE]
@@ -172,7 +174,7 @@ Default: `[]`
 
 ### <a name="input_existing_policy_id"></a> [existing\_policy\_id](#input\_existing\_policy\_id)
 
-Description: The ID (GUID) of the existing DLP policy whose live environment membership this module should mirror when management\_mode = 'connectors\_only'. Required when management\_mode = 'connectors\_only' — the policy must already exist in Terraform state (created by a prior apply in full mode, then imported). Has no effect in full mode. Use output.resource\_id from a prior apply to obtain the value.
+Description: The ID (GUID) of the existing DLP policy whose live environment membership this module should mirror when management\_mode = 'connectors\_only'. Required when management\_mode = 'connectors\_only' — the policy must already exist in Terraform state (created by a prior apply in full mode, then imported). Has no effect in full mode. Use output.resource\_id from a prior apply to obtain the value. IMPORTANT: this must be a previously captured value (e.g. from remote state or a hardcoded output) — do not reference the same module call's output here, as that would create a dependency cycle.
 
 Type: `string`
 

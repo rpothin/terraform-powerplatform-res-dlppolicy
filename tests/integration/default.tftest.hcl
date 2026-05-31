@@ -7,15 +7,14 @@
 #   TF_VAR_environments='["<your-sandbox-env-id>"]'  must be exported before running
 #   (set INTEGRATION_TEST_ENVIRONMENT_ID repository variable for CI)
 #
-# For the connectors_only run:
-#   TF_VAR_existing_policy_id='<an-existing-policy-id>'  must be exported before running
-#   The referenced policy must already exist and be of type OnlyEnvironments.
-#   (set INTEGRATION_TEST_EXISTING_POLICY_ID repository variable for CI)
-#
 # These tests target OnlyEnvironments scope to avoid applying policies tenant-wide
 # during test runs. Use a dedicated sandbox environment — DO NOT run against production.
 #
 # Resources are automatically destroyed after test completion.
+#
+# connectors_only mode integration tests live in tests/integration-connectors-only/
+# and require an additional fixture (TF_VAR_existing_policy_id). Run them separately
+# via 'make test-integration-connectors-only'.
 
 run "creates_environment_scoped_policy" {
   command = apply
@@ -73,34 +72,5 @@ run "creates_policy_with_business_connectors" {
   assert {
     condition     = powerplatform_data_loss_prevention_policy.this.default_connectors_classification == "Blocked"
     error_message = "default_connectors_classification must be 'Blocked' after apply (zero-trust invariant)."
-  }
-}
-
-# Plan-only validation for connectors_only mode against a real existing policy.
-# This run does NOT create or modify the referenced policy — it only validates
-# that the module can read its live environment list and plan without errors.
-#
-# This test covers the happy-path that cannot be unit-tested due to Terraform's
-# restriction on function calls (tolist/toset) inside mock_provider blocks:
-# the ListNestedAttribute "policies" in the data source schema requires typed
-# collections that HCL literals alone cannot produce in mock context.
-#
-# Requires TF_VAR_existing_policy_id to be set to an existing OnlyEnvironments policy ID.
-# Skip this run in CI environments where the variable is not available.
-# If this plan succeeds (preconditions pass), the data source found the policy
-# and its live environment list was successfully read.
-run "connectors_only_reads_live_policy_environments" {
-  command = plan
-
-  variables {
-    display_name     = "tftest-connectors-only-dlp-policy"
-    environment_type = "OnlyEnvironments"
-    management_mode  = "connectors_only"
-    # existing_policy_id is set via TF_VAR_existing_policy_id environment variable
-  }
-
-  assert {
-    condition     = powerplatform_data_loss_prevention_policy.this.environment_type == "OnlyEnvironments"
-    error_message = "connectors_only mode must produce an OnlyEnvironments plan."
   }
 }

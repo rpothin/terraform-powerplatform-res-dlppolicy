@@ -53,3 +53,13 @@ check "business_connector_ids_exist" {
     error_message = "One or more business_connectors IDs do not exist in the list of available connectors. Verify the connector IDs are correct and the PowerPlatform provider has access to list connectors."
   }
 }
+
+# Advisory: existing_policy_id is only meaningful in connectors_only mode.
+# This check warns when the variable is provided in full mode where it has no effect,
+# which most likely indicates a misconfiguration or a forgotten cleanup after a mode switch.
+check "existing_policy_id_unused_in_full_mode" {
+  assert {
+    condition     = !(var.management_mode == "full" && var.existing_policy_id != null)
+    error_message = "existing_policy_id is set but management_mode is 'full' — the value has no effect. Remove existing_policy_id or switch to management_mode = 'connectors_only'."
+  }
+}

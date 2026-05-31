@@ -47,7 +47,7 @@ variable "management_mode" {
 }
 
 variable "existing_policy_id" {
-  description = "The ID (GUID) of the existing DLP policy whose live environment membership this module should mirror when management_mode = 'connectors_only'. Required when management_mode = 'connectors_only' — the policy must already exist in Terraform state (created by a prior apply in full mode, then imported). Has no effect in full mode. Use output.resource_id from a prior apply to obtain the value."
+  description = "The ID (GUID) of the existing DLP policy whose live environment membership this module should mirror when management_mode = 'connectors_only'. Required when management_mode = 'connectors_only' — the policy must already exist in Terraform state (created by a prior apply in full mode, then imported). Has no effect in full mode. Use output.resource_id from a prior apply to obtain the value. IMPORTANT: this must be a previously captured value (e.g. from remote state or a hardcoded output) — do not reference the same module call's output here, as that would create a dependency cycle."
   type        = string
   nullable    = true
   default     = null

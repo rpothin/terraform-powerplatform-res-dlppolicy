@@ -478,5 +478,10 @@ run "full_mode_environments_from_var_not_api" {
     condition     = length(powerplatform_data_loss_prevention_policy.this.environments) == 1
     error_message = "full mode must have exactly 1 environment (from var.environments)."
   }
+
+  # existing_policy_id is set in full mode — the check advisory should fire.
+  expect_failures = [
+    check.existing_policy_id_unused_in_full_mode,
+  ]
 }
 
