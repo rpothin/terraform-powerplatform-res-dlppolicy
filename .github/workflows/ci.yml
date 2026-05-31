@@ -124,22 +124,12 @@ jobs:
           terraform_wrapper: false
 
       - name: Run Integration Tests
-        run: |
-          # Export TF_VAR_existing_policy_id only when the fixture variable is configured.
-          # If INTEGRATION_TEST_EXISTING_POLICY_ID is unset, GitHub Actions renders it as an
-          # empty string. Passing "" to Terraform would fail UUID validation for all test runs,
-          # not just the connectors_only scenario. The conditional ensures var.existing_policy_id
-          # falls back to its default (null) when the fixture is not configured.
-          if [ -n "$FIXTURE_EXISTING_POLICY_ID" ]; then
-            export TF_VAR_existing_policy_id="$FIXTURE_EXISTING_POLICY_ID"
-          fi
-          make test-integration
+        run: make test-integration
         env:
           POWER_PLATFORM_USE_OIDC: "true"
           POWER_PLATFORM_TENANT_ID: ${{ secrets.POWER_PLATFORM_TENANT_ID }}
           POWER_PLATFORM_CLIENT_ID: ${{ secrets.POWER_PLATFORM_CLIENT_ID }}
           TF_VAR_environments: '["${{ vars.INTEGRATION_TEST_ENVIRONMENT_ID }}"]'
-          FIXTURE_EXISTING_POLICY_ID: ${{ vars.INTEGRATION_TEST_EXISTING_POLICY_ID }}
 
       - name: Run connectors_only Integration Tests
         if: vars.INTEGRATION_TEST_EXISTING_POLICY_ID != ''
