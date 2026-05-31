@@ -1,4 +1,28 @@
 locals {
+  # Flat list of all live DLP policies; populated only when management_mode = "connectors_only".
+  # Uses the flatten+for pattern so that when count = 0 (full mode) the result is safely [].
+  _all_live_policies = flatten([
+    for d in data.powerplatform_data_loss_prevention_policies.current : d.policies
+  ])
+
+  # Zero-or-one-element list of the live policy whose id matches existing_policy_id.
+  # A lifecycle precondition guarantees this is non-empty at apply time in connectors_only mode.
+  _live_matched_policy = [
+    for p in local._all_live_policies : p
+    if p.id == var.existing_policy_id
+  ]
+
+  # Environment list passed to the resource:
+  # - full mode: var.environments (sorted deterministically by the resource attribute).
+  # - connectors_only mode: live environment set from the API, converted to a list for sort().
+  #   Falls back to [] if no match; the lifecycle precondition guarantees a match at apply time.
+  effective_environments = (
+    var.management_mode == "connectors_only"
+    ? (length(local._live_matched_policy) > 0 ? tolist(local._live_matched_policy[0].environments) : [])
+    : var.environments
+  )
+
+
   # Set of business connector IDs for fast membership checks
   business_connector_ids = toset([for c in var.business_connectors : c.id])
 

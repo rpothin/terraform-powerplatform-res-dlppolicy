@@ -34,8 +34,32 @@ variable "environment_type" {
   }
 }
 
+variable "management_mode" {
+  description = "Controls which aspects of the policy this module manages. 'full' (default): Terraform is fully authoritative for both connectors and environment membership — var.environments is the source of truth. 'connectors_only': Terraform manages only connectors and custom connector patterns; environment membership is delegated to an external process (e.g. Power Automate flows, PPAC operations) and is read live from the API on each plan. Requires existing_policy_id and is only valid for OnlyEnvironments policies. See the README for the recommended onboarding workflow."
+  type        = string
+  nullable    = false
+  default     = "full"
+
+  validation {
+    condition     = contains(["full", "connectors_only"], var.management_mode)
+    error_message = "management_mode must be one of: full, connectors_only."
+  }
+}
+
+variable "existing_policy_id" {
+  description = "The ID (GUID) of the existing DLP policy whose live environment membership this module should mirror when management_mode = 'connectors_only'. Required when management_mode = 'connectors_only' — the policy must already exist in Terraform state (created by a prior apply in full mode, then imported). Has no effect in full mode. Use output.resource_id from a prior apply to obtain the value."
+  type        = string
+  nullable    = true
+  default     = null
+
+  validation {
+    condition     = var.existing_policy_id == null || can(regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", var.existing_policy_id))
+    error_message = "existing_policy_id must be null or a valid UUID in the format xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx (case-insensitive)."
+  }
+}
+
 variable "environments" {
-  description = "A list of environment IDs to include or exclude depending on environment_type. Required when environment_type is OnlyEnvironments or ExceptEnvironments. Each value must be a valid UUID (case-insensitive). Use lower() in HCL to normalise IDs copied from the Power Platform admin center."
+  description = "A list of environment IDs to include or exclude depending on environment_type. Required when environment_type is OnlyEnvironments or ExceptEnvironments and management_mode is 'full'. Ignored when management_mode is 'connectors_only' — environment membership is read live from the API in that mode. Each value must be a valid UUID (case-insensitive). Use lower() in HCL to normalise IDs copied from the Power Platform admin center."
   type        = list(string)
   nullable    = false
   default     = []

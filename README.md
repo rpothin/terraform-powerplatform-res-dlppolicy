@@ -24,6 +24,53 @@ This module enforces a zero-trust baseline:
 - A service principal with the **Power Platform Administrator** role
 - OIDC authentication configured (`POWER_PLATFORM_USE_OIDC=true`, `POWER_PLATFORM_TENANT_ID`, `POWER_PLATFORM_CLIENT_ID`)
 
+## Environment Scope Management
+
+The `management_mode` variable controls whether Terraform manages both connectors **and** environment membership, or connectors only.
+
+| Mode | Description |
+|------|-------------|
+| `full` (default) | Terraform is fully authoritative: manages connector classification **and** the policy's environment list. `var.environments` is the source of truth. |
+| `connectors_only` | Terraform manages connector classification only. The environment list is read from the live API on every plan/apply and passed back unchanged — effectively a no-op on environments. Suitable when an external process (Power Automate, PPAC) owns environment membership. Only valid for `OnlyEnvironments` policies. Requires `existing_policy_id`. |
+
+### When to use `connectors_only`
+
+**Context A — IaC transition period:** The organization is progressively onboarding existing DLP policies to Terraform while PPAC or Power Automate flows continue to handle environment membership changes. Using `connectors_only` avoids conflicts during this overlap period.
+
+**Context B — Permanent parallel ownership:** The organization uses Terraform for connector governance but has a permanent, separate process (e.g. an environment provisioning flow) that manages which environments belong to which policy. `connectors_only` allows both systems to coexist without interference.
+
+### Onboarding workflow for new `connectors_only` policies
+
+New policies cannot start directly in `connectors_only` mode because the policy must already exist.
+
+1. **Create** the policy with `management_mode = "full"` and at least one environment in `var.environments`:
+   ```hcl
+   module "dlp_policy" {
+     source           = "..."
+     display_name     = "My Baseline Policy"
+     environment_type = "OnlyEnvironments"
+     environments     = ["<initial-env-id>"]
+   }
+   ```
+2. After `terraform apply`, note the `output.resource_id`.
+3. **Switch** to `connectors_only` mode — from this point Terraform no longer manages the environment list:
+   ```hcl
+   module "dlp_policy" {
+     source             = "..."
+     display_name       = "My Baseline Policy"
+     environment_type   = "OnlyEnvironments"
+     management_mode    = "connectors_only"
+     existing_policy_id = "<resource_id from step 2>"
+   }
+   ```
+4. Hand off (or continue using) the external process for environment membership.
+
+> [!NOTE]
+> `var.environments` is silently ignored in `connectors_only` mode. If you provide it, the value has no effect on the applied configuration.
+
+> [!WARNING]
+> `connectors_only` is only valid for `OnlyEnvironments` policies. Using it with `AllEnvironments` or `ExceptEnvironments` will fail with a lifecycle precondition error.
+
 <!-- markdownlint-disable MD033 -->
 ## Requirements
 
@@ -39,6 +86,7 @@ The following resources are used by this module:
 
 - [powerplatform_data_loss_prevention_policy.this](https://registry.terraform.io/providers/microsoft/power-platform/latest/docs/resources/data_loss_prevention_policy) (resource)
 - [powerplatform_connectors.all](https://registry.terraform.io/providers/microsoft/power-platform/latest/docs/data-sources/connectors) (data source)
+- [powerplatform_data_loss_prevention_policies.current](https://registry.terraform.io/providers/microsoft/power-platform/latest/docs/data-sources/data_loss_prevention_policies) (data source)
 
 <!-- markdownlint-disable MD013 -->
 ## Required Inputs
@@ -113,11 +161,27 @@ Default: `"OnlyEnvironments"`
 
 ### <a name="input_environments"></a> [environments](#input\_environments)
 
-Description: A list of environment IDs to include or exclude depending on environment\_type. Required when environment\_type is OnlyEnvironments or ExceptEnvironments. Each value must be a valid UUID (case-insensitive). Use lower() in HCL to normalise IDs copied from the Power Platform admin center.
+Description: A list of environment IDs to include or exclude depending on environment\_type. Required when environment\_type is OnlyEnvironments or ExceptEnvironments and management\_mode is 'full'. Ignored when management\_mode is 'connectors\_only' — environment membership is read live from the API in that mode. Each value must be a valid UUID (case-insensitive). Use lower() in HCL to normalise IDs copied from the Power Platform admin center.
 
 Type: `list(string)`
 
 Default: `[]`
+
+### <a name="input_existing_policy_id"></a> [existing\_policy\_id](#input\_existing\_policy\_id)
+
+Description: The ID (GUID) of the existing DLP policy whose live environment membership this module should mirror when management\_mode = 'connectors\_only'. Required when management\_mode = 'connectors\_only' — the policy must already exist in Terraform state (created by a prior apply in full mode, then imported). Has no effect in full mode. Use output.resource\_id from a prior apply to obtain the value.
+
+Type: `string`
+
+Default: `null`
+
+### <a name="input_management_mode"></a> [management\_mode](#input\_management\_mode)
+
+Description: Controls which aspects of the policy this module manages. 'full' (default): Terraform is fully authoritative for both connectors and environment membership — var.environments is the source of truth. 'connectors\_only': Terraform manages only connectors and custom connector patterns; environment membership is delegated to an external process (e.g. Power Automate flows, PPAC operations) and is read live from the API on each plan. Requires existing\_policy\_id and is only valid for OnlyEnvironments policies. See the README for the recommended onboarding workflow.
+
+Type: `string`
+
+Default: `"full"`
 
 ## Outputs
 

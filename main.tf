@@ -1,10 +1,16 @@
 data "powerplatform_connectors" "all" {}
 
+# Fetches all live DLP policies to read the current environment membership.
+# Only provisioned in connectors_only mode to avoid unnecessary API calls in full mode.
+data "powerplatform_data_loss_prevention_policies" "current" {
+  count = var.management_mode == "connectors_only" ? 1 : 0
+}
+
 resource "powerplatform_data_loss_prevention_policy" "this" {
   display_name                      = var.display_name
   default_connectors_classification = var.default_connectors_classification
   environment_type                  = var.environment_type
-  environments                      = sort(var.environments)
+  environments                      = sort(local.effective_environments)
 
   business_connectors     = var.business_connectors
   non_business_connectors = local.non_business_connectors
@@ -14,8 +20,23 @@ resource "powerplatform_data_loss_prevention_policy" "this" {
 
   lifecycle {
     precondition {
-      condition     = var.environment_type == "AllEnvironments" || length(var.environments) > 0
+      condition     = var.management_mode == "connectors_only" || var.environment_type == "AllEnvironments" || length(var.environments) > 0
       error_message = "environments must contain at least one environment ID when environment_type is OnlyEnvironments or ExceptEnvironments."
+    }
+
+    precondition {
+      condition     = var.management_mode != "connectors_only" || var.environment_type == "OnlyEnvironments"
+      error_message = "management_mode 'connectors_only' is only valid for OnlyEnvironments policies. Use management_mode 'full' for ExceptEnvironments and AllEnvironments policies."
+    }
+
+    precondition {
+      condition     = var.management_mode != "connectors_only" || var.existing_policy_id != null
+      error_message = "management_mode 'connectors_only' requires existing_policy_id. The policy must already exist. See the README for the recommended onboarding workflow."
+    }
+
+    precondition {
+      condition     = var.management_mode != "connectors_only" || var.existing_policy_id == null || length(local._live_matched_policy) > 0
+      error_message = "management_mode 'connectors_only': no live DLP policy found matching existing_policy_id. Verify the ID is correct and the policy exists in the tenant."
     }
   }
 }
