@@ -38,6 +38,15 @@ run "creates_environment_scoped_policy" {
     condition     = powerplatform_data_loss_prevention_policy.this.default_connectors_classification == "Blocked"
     error_message = "default_connectors_classification must be 'Blocked' after apply (zero-trust invariant)."
   }
+
+  assert {
+    condition = length(setintersection(
+      toset([for c in powerplatform_data_loss_prevention_policy.this.non_business_connectors : c.id]),
+      toset([for c in powerplatform_data_loss_prevention_policy.this.blocked_connectors : c.id]),
+    )) == 0
+    error_message = "A connector ID must not be classified in both NonBusiness and Blocked groups."
+  }
+
 }
 
 run "creates_policy_with_business_connectors" {
@@ -72,5 +81,13 @@ run "creates_policy_with_business_connectors" {
   assert {
     condition     = powerplatform_data_loss_prevention_policy.this.default_connectors_classification == "Blocked"
     error_message = "default_connectors_classification must be 'Blocked' after apply (zero-trust invariant)."
+  }
+
+  assert {
+    condition = length(setintersection(
+      toset([for c in powerplatform_data_loss_prevention_policy.this.non_business_connectors : c.id]),
+      toset([for c in powerplatform_data_loss_prevention_policy.this.blocked_connectors : c.id]),
+    )) == 0
+    error_message = "A connector ID must not be classified in both NonBusiness and Blocked groups."
   }
 }

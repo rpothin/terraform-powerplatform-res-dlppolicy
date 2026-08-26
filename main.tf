@@ -48,7 +48,7 @@ check "business_connector_ids_exist" {
   assert {
     condition = length(setsubtract(
       local.business_connector_ids,
-      toset([for c in data.powerplatform_connectors.all.connectors : c.id])
+      local.all_connector_ids
     )) == 0
     error_message = "One or more business_connectors IDs do not exist in the list of available connectors. Verify the connector IDs are correct and the PowerPlatform provider has access to list connectors."
   }

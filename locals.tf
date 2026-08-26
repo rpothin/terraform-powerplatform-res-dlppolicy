@@ -26,24 +26,31 @@ locals {
   )
 
 
+  # Canonicalize provider connector IDs before deriving DLP classifications.
+  # A connector is unblockable if any duplicate provider record marks it as unblockable.
+  all_connector_ids = toset([
+    for c in data.powerplatform_connectors.all.connectors : c.id
+  ])
+  unblockable_connector_ids = toset([
+    for c in data.powerplatform_connectors.all.connectors : c.id if c.unblockable
+  ])
+  blockable_connector_ids = setsubtract(local.all_connector_ids, local.unblockable_connector_ids)
+
   # Set of business connector IDs for fast membership checks
   business_connector_ids = toset([for c in var.business_connectors : c.id])
 
   # Unblockable connectors not explicitly assigned to the Business group are
   # placed in the NonBusiness group. This ensures the "Blocked" default
   # classification never incorrectly targets connectors that cannot be blocked.
-  # Sorting by ID before toset() ensures a deterministic element order, preventing
-  # spurious "update-in-place" noise in plans when nothing has actually changed.
+  # Sorting canonical IDs before toset() ensures deterministic element order,
+  # preventing spurious "update-in-place" noise when nothing has changed.
   non_business_connectors = toset([
-    for c_id in sort([
-      for c in data.powerplatform_connectors.all.connectors : c.id
-      if c.unblockable && !contains(local.business_connector_ids, c.id)
-      ]) : {
+    for c_id in sort(tolist(local.unblockable_connector_ids)) : {
       id                           = c_id
       default_action_rule_behavior = ""
       action_rules                 = []
       endpoint_rules               = []
-    }
+    } if !contains(local.business_connector_ids, c_id)
   ])
 
   # Blockable connectors not assigned to the Business group are explicitly
@@ -51,15 +58,12 @@ locals {
   # appear in exactly one group — relying on default_connectors_classification
   # alone is insufficient and will cause a provider error.
   blocked_connectors = toset([
-    for c_id in sort([
-      for c in data.powerplatform_connectors.all.connectors : c.id
-      if !c.unblockable && !contains(local.business_connector_ids, c.id)
-      ]) : {
+    for c_id in sort(tolist(local.blockable_connector_ids)) : {
       id                           = c_id
       default_action_rule_behavior = ""
       action_rules                 = []
       endpoint_rules               = []
-    }
+    } if !contains(local.business_connector_ids, c_id)
   ])
 
   # Highest order value in user-supplied custom connector patterns (0 when none).
