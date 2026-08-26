@@ -16,6 +16,8 @@ This module enforces a zero-trust baseline:
 | NonBusiness connectors | **Auto-computed** — all unblockable connectors not in the Business group are placed here automatically |
 | Custom connectors | **Blocked** — a wildcard catch-all rule (`*` → Blocked) is always appended last |
 
+The provider connector catalog is canonicalized by connector ID before classification, so duplicate records from overlapping metadata endpoints cannot place one connector in both the NonBusiness and Blocked groups. When duplicate records disagree, an ID is treated as unblockable if any record marks it as unblockable.
+
 ## Prerequisites
 
 - Power Platform Terraform provider `~> 4.0`
@@ -76,4 +78,3 @@ New policies cannot start directly in `connectors_only` mode because the policy 
 
 > [!WARNING]
 > **Do not use saved Terraform plans (`terraform apply saved.tfplan`) in `connectors_only` mode.** The environment list is read from the live API at plan time and baked into the saved plan. If the external process changes environment membership between `terraform plan` and `terraform apply`, Terraform will overwrite the live state with the stale plan value. Always run `terraform apply` directly (without a pre-saved plan) in `connectors_only` mode so the API is re-read immediately before each apply.
-
