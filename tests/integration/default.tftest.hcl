@@ -46,6 +46,13 @@ run "creates_environment_scoped_policy" {
     )) == 0
     error_message = "A connector ID must not be classified in both NonBusiness and Blocked groups."
   }
+
+  assert {
+    condition = length(data.powerplatform_connectors.all.connectors) == length(toset([
+      for c in data.powerplatform_connectors.all.connectors : c.id
+    ]))
+    error_message = "The live connector catalog must not contain duplicate connector IDs."
+  }
 }
 
 run "creates_policy_with_business_connectors" {
