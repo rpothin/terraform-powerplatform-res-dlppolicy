@@ -1,4 +1,6 @@
-data "powerplatform_connectors" "all" {}
+data "powerplatform_connectors" "all" {
+  environment_id = local._connector_catalog_environment_id
+}
 
 # Fetches all live DLP policies to read the current environment membership.
 # Only provisioned in connectors_only mode to avoid unnecessary API calls in full mode.

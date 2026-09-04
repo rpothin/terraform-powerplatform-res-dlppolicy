@@ -41,6 +41,11 @@ run "connectors_only_reads_live_policy_environments" {
   }
 
   assert {
+    condition     = data.powerplatform_connectors.all.environment_id == sort(tolist(powerplatform_data_loss_prevention_policy.this.environments))[0]
+    error_message = "connectors_only mode must scope the connector catalog to the first live policy environment."
+  }
+
+  assert {
     # Confirms management_mode setting is accepted and does not affect environment_type.
     condition     = powerplatform_data_loss_prevention_policy.this.default_connectors_classification == "Blocked"
     error_message = "default_connectors_classification must be Blocked (zero-trust invariant) regardless of management_mode."

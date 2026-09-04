@@ -95,12 +95,20 @@ run "only_environments_scope" {
   variables {
     display_name     = "test-policy"
     environment_type = "OnlyEnvironments"
-    environments     = ["00000000-0000-0000-0000-000000000001"]
+    environments = [
+      "00000000-0000-0000-0000-000000000002",
+      "00000000-0000-0000-0000-000000000001",
+    ]
   }
 
   assert {
     condition     = powerplatform_data_loss_prevention_policy.this.environment_type == "OnlyEnvironments"
     error_message = "environment_type should be OnlyEnvironments."
+  }
+
+  assert {
+    condition     = data.powerplatform_connectors.all.environment_id == "00000000-0000-0000-0000-000000000002"
+    error_message = "OnlyEnvironments policies must scope the connector catalog to the first configured environment."
   }
 }
 
@@ -116,6 +124,11 @@ run "except_environments_scope" {
   assert {
     condition     = powerplatform_data_loss_prevention_policy.this.environment_type == "ExceptEnvironments"
     error_message = "environment_type should be ExceptEnvironments."
+  }
+
+  assert {
+    condition     = data.powerplatform_connectors.all.environment_id == null
+    error_message = "ExceptEnvironments policies must retain the tenant-level connector catalog scope."
   }
 }
 
@@ -165,6 +178,11 @@ run "business_connector_excluded_from_non_business" {
   assert {
     condition     = !contains([for c in powerplatform_data_loss_prevention_policy.this.non_business_connectors : c.id], "/providers/Microsoft.PowerApps/apis/shared_logicflows")
     error_message = "A connector added to business_connectors must not appear in the NonBusiness group."
+  }
+
+  assert {
+    condition     = contains(output.unmatched_business_connector_ids, "/providers/Microsoft.PowerApps/apis/shared_logicflows")
+    error_message = "unmatched_business_connector_ids must expose business connector IDs missing from the catalog."
   }
 
   expect_failures = [
@@ -484,4 +502,3 @@ run "full_mode_environments_from_var_not_api" {
     check.existing_policy_id_unused_in_full_mode,
   ]
 }
-
