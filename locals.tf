@@ -25,6 +25,16 @@ locals {
     : var.environments
   )
 
+  # A concrete environment exposes the complete connector catalog for
+  # OnlyEnvironments policies. Other policy types retain the provider's
+  # tenant-level default because they have no single environment scope.
+  _connector_catalog_environment_id = (
+    var.environment_type != "OnlyEnvironments"
+    ? null
+    : var.management_mode == "connectors_only"
+    ? (length(local.effective_environments) > 0 ? sort(local.effective_environments)[0] : null)
+    : (length(var.environments) > 0 ? var.environments[0] : null)
+  )
 
   # Canonicalize provider connector IDs before deriving DLP classifications.
   # A connector is unblockable if any duplicate provider record marks it as unblockable.
@@ -38,6 +48,11 @@ locals {
 
   # Set of business connector IDs for fast membership checks
   business_connector_ids = toset([for c in var.business_connectors : c.id])
+
+  unmatched_business_connector_ids = sort(tolist(setsubtract(
+    local.business_connector_ids,
+    local.all_connector_ids
+  )))
 
   # Unblockable connectors not explicitly assigned to the Business group are
   # placed in the NonBusiness group. This ensures the "Blocked" default

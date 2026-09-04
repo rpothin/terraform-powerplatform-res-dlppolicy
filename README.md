@@ -81,6 +81,25 @@ New policies cannot start directly in `connectors_only` mode because the policy 
 > [!WARNING]
 > **Do not use saved Terraform plans (`terraform apply saved.tfplan`) in `connectors_only` mode.** The environment list is read from the live API at plan time and baked into the saved plan. If the external process changes environment membership between `terraform plan` and `terraform apply`, Terraform will overwrite the live state with the stale plan value. Always run `terraform apply` directly (without a pre-saved plan) in `connectors_only` mode so the API is re-read immediately before each apply.
 
+### Connector catalog scope
+
+For `OnlyEnvironments` policies, the module queries the connector catalog using
+the first effective environment. In `full` mode this is the first value in
+`var.environments`; in `connectors_only` mode it is the first environment
+returned by the live policy lookup after deterministic sorting. This ensures connector validation and
+automatic NonBusiness/Blocked classification include environment-available
+connectors that are absent from the provider's tenant-level `~Default` view.
+
+For `AllEnvironments` and `ExceptEnvironments` policies, no single environment
+represents the policy scope, so the module retains the provider's tenant-level
+catalog behavior. An empty `OnlyEnvironments` list also falls back to that
+behavior during bootstrap; the existing lifecycle precondition still requires
+an environment before apply.
+
+The `unmatched_business_connector_ids` output lists the exact configured
+business connector IDs missing from the selected catalog, making the advisory
+`business_connector_ids_exist` check actionable in CI logs and troubleshooting.
+
 <!-- markdownlint-disable MD033 -->
 ## Requirements
 
@@ -208,6 +227,10 @@ Description: The full DLP policy resource object. Exposes all provider-managed a
 ### <a name="output_resource_id"></a> [resource\_id](#output\_resource\_id)
 
 Description: The unique ID (GUID) of the DLP policy.
+
+### <a name="output_unmatched_business_connector_ids"></a> [unmatched\_business\_connector\_ids](#output\_unmatched\_business\_connector\_ids)
+
+Description: Business connector IDs that were not returned by the provider connector catalog. An empty set confirms that all configured business connectors were found.
 
 ## Modules
 
