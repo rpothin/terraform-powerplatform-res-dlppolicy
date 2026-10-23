@@ -27,6 +27,9 @@ TRACE_VERTEX_PATTERN = re.compile(
     r'^(?P<timestamp>\S+)\s+\[TRACE\].*vertex "(?P<address>[^"]+)": '
     r"(?P<event>starting visit|visit complete)"
 )
+HTTP_ERROR_STATUS_PATTERN = re.compile(
+    r"(?i)\b(?:HTTP/[\d.]+|HTTP(?: status)?|status(?: code)?|statuscode)\s*[:=]?\s*([45]\d{2})\b"
+)
 
 
 def fail(message: str) -> None:
@@ -118,6 +121,7 @@ def run_plan(
     target_start: dt.datetime | None = None
     target_durations: list[float] = []
     diagnostics: list[str] = []
+    http_error_statuses: set[str] = set()
     process = subprocess.Popen(
         command,
         cwd=module_dir,
@@ -131,6 +135,9 @@ def run_plan(
     )
     assert process.stdout is not None
     for line in process.stdout:
+        http_status = HTTP_ERROR_STATUS_PATTERN.search(line)
+        if http_status is not None:
+            http_error_statuses.add(http_status.group(1))
         diagnostic = re.search(r"(?:^|\s)│?\s*Error:\s*(.*)", line)
         if diagnostic is not None:
             diagnostics.append(safe_diagnostic(diagnostic.group(1)))
@@ -150,6 +157,9 @@ def run_plan(
     elapsed = time.monotonic() - start_time
     if return_code:
         summary = diagnostics[0] if diagnostics else "no sanitized Terraform diagnostic was available"
+        if http_error_statuses:
+            statuses = ", ".join(sorted(http_error_statuses))
+            summary = f"{summary} (observed HTTP status: {statuses})"
         fail(
             f"Terraform plan failed in {module_dir.name} (exit code {return_code}): "
             f"{summary}. Raw logs were suppressed."
