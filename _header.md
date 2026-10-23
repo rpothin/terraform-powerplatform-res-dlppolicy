@@ -42,6 +42,25 @@ government clouds. They have no effect in `full` mode, which makes no live polic
 REST request. The read uses the provider's configured authentication and requires
 the same BAP policy-read access as the previous tenant-wide policy data source.
 
+### Performance scope and expectations
+
+This change removes the policy-count-dependent lookup: `connectors_only` reads
+the selected policy instead of listing the tenant's policies and fetching each
+one. It does not optimize the separate connector-catalog read or the provider /
+Terraform Plugin Framework processing of the DLP resource's connector sets.
+The original consumer report identified that resource-side processing as a
+separate source of plan time; its actual cost depends on the tenant and provider
+version and may remain after this lookup improvement.
+
+The automated before/after benchmark for this change used a shared test tenant
+with two policies. It showed faster lookup and matching planned values in that
+fixture, but it is not a representative-scale measurement and does not predict
+the total duration for a larger consumer tenant. Before claiming the consumer's
+end-to-end performance target is met, validate with a sequential, plan-only
+comparison at the consumer's scale and confirm planned environment membership,
+connector-catalog scope, and DLP resource configuration still match. Do not
+apply either benchmark plan.
+
 ### When to use `connectors_only`
 
 **Context A — IaC transition period:** The organization is progressively onboarding existing DLP policies to Terraform while PPAC or Power Automate flows continue to handle environment membership changes. Using `connectors_only` avoids conflicts during this overlap period.

@@ -62,9 +62,15 @@ tests succeed. This uses the same OIDC event context as integration tests and
 prevents the read-only benchmark from overlapping tenant mutations. It runs
 sequential, plan-only comparisons of v0.1.4 and the candidate, fixes both runs to
 provider 4.2.1, checks plan parity, and writes only sanitized timing and
-comparison results to the workflow summary. If the baseline plan fails, the
-runner still attempts the candidate plan as a read-only diagnostic control, but
-fails the benchmark without reporting paired timings or parity.
+comparison results to the workflow summary. The configured shared test tenant
+has two DLP policies, so this benchmark verifies the lookup change and plan
+parity in that fixture; it does not establish performance at a consumer's larger
+tenant scale. The change does not optimize connector-catalog reads or the
+provider / Terraform Plugin Framework processing of connector sets in the
+managed DLP resource. Validate end-to-end performance separately at the
+consumer's scale before claiming its runtime target is met. If the baseline plan
+fails, the runner still attempts the candidate plan as a read-only diagnostic
+control, but fails the benchmark without reporting paired timings or parity.
 
 ### All Tests
 

@@ -29,9 +29,10 @@ Step-by-step instructions for publishing a new release of the module.
 - [ ] Unit tests pass with Power Platform provider 4.1.0 and the latest 4.x release
 - [ ] The `connectors_only` integration test passes against the configured non-production fixture tenant
 - [ ] The dedicated nonexistent-policy test fails planning with an HTTP 404/not-found diagnostic
-- [ ] A paired plan-only benchmark compares v0.1.4 with the release candidate using the same tenant, fixture, Terraform/provider versions, and inputs
+- [ ] The module CI paired plan-only benchmark compares v0.1.4 with the release candidate using the same tenant, fixture, Terraform/provider versions, and inputs
 - [ ] Benchmark evidence records live policy lookup time, total plan time, the logical policy API request pattern, and matching planned environments, connector catalog scope, and resource configuration
 - [ ] Benchmark evidence contains no credentials, raw provider logs, or policy/environment identifiers
+- [ ] Before claiming the consumer's end-to-end runtime target is met, the consumer validates a sequential, plan-only v0.1.4/release-candidate comparison at representative tenant scale; confirm planned environments, connector-catalog scope, and DLP resource configuration match, and do not apply either plan
 
 ## Version Tagging Convention
 
