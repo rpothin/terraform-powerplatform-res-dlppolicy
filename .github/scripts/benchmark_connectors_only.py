@@ -102,6 +102,23 @@ def safe_diagnostic(value: str) -> str:
     return value.strip(" │\t")
 
 
+def diagnostic_category(value: str) -> str | None:
+    value = value.lower()
+    if "unexpected http status code" in value:
+        return "unexpected HTTP response"
+    if any(term in value for term in ("permission", "forbidden", "access denied")):
+        return "authorization failure"
+    if any(term in value for term in ("unauthorized", "authentication", "invalid token")):
+        return "authentication failure"
+    if "not found" in value:
+        return "resource not found"
+    if any(term in value for term in ("deadline exceeded", "timed out", "timeout")):
+        return "request timeout"
+    if any(term in value for term in ("unmarshal", "decode", "invalid character", "conversion")):
+        return "response decoding/conversion failure"
+    return None
+
+
 def run_plan(
     module_dir: Path,
     plan_path: Path,
@@ -123,6 +140,8 @@ def run_plan(
     target_durations: list[float] = []
     diagnostics: list[str] = []
     http_error_statuses: set[str] = set()
+    diagnostic_categories: set[str] = set()
+    in_diagnostic = False
     process = subprocess.Popen(
         command,
         cwd=module_dir,
@@ -142,6 +161,13 @@ def run_plan(
         diagnostic = re.search(r"(?:^|\s)│?\s*Error:\s*(.*)", line)
         if diagnostic is not None:
             diagnostics.append(safe_diagnostic(diagnostic.group(1)))
+            in_diagnostic = True
+        elif in_diagnostic and line.lstrip().startswith("╵"):
+            in_diagnostic = False
+        elif in_diagnostic:
+            category = diagnostic_category(line)
+            if category is not None:
+                diagnostic_categories.add(category)
         match = TRACE_VERTEX_PATTERN.match(line)
         if match is None or match.group("address") != trace_address:
             continue
@@ -161,6 +187,9 @@ def run_plan(
         if http_error_statuses:
             statuses = ", ".join(sorted(http_error_statuses))
             summary = f"{summary} (observed HTTP status: {statuses})"
+        if diagnostic_categories:
+            categories = ", ".join(sorted(diagnostic_categories))
+            summary = f"{summary} (diagnostic category: {categories})"
         fail(
             f"Terraform plan failed in {module_dir.name} (exit code {return_code}): "
             f"{summary}. Raw logs were suppressed."
