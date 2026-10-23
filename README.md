@@ -35,6 +35,34 @@ The `management_mode` variable controls whether Terraform manages both connector
 | `full` (default) | Terraform is fully authoritative: manages connector classification **and** the policy's environment list. `var.environments` is the source of truth. |
 | `connectors_only` | Terraform manages connector classification only. The environment list is read from the live API on every plan/apply and passed back unchanged — effectively a no-op on environments. Suitable when an external process (Power Automate, PPAC) owns environment membership. Only valid for `OnlyEnvironments` policies. Requires `existing_policy_id`. |
 
+In `connectors_only` mode, the module reads only the policy identified by
+`existing_policy_id` with one BAP API GET; it does not enumerate tenant policies.
+A missing policy or unsuccessful API response fails the plan rather than being
+treated as an empty environment list. The optional `bapi_host` and `bapi_scope`
+variables default to public-cloud values and can be paired for sovereign or
+government clouds. They have no effect in `full` mode, which makes no live policy
+REST request. The read uses the provider's configured authentication and requires
+the same BAP policy-read access as the previous tenant-wide policy data source.
+
+### Performance scope and expectations
+
+This change removes the policy-count-dependent lookup: `connectors_only` reads
+the selected policy instead of listing the tenant's policies and fetching each
+one. It does not optimize the separate connector-catalog read or the provider /
+Terraform Plugin Framework processing of the DLP resource's connector sets.
+The original consumer report identified that resource-side processing as a
+separate source of plan time; its actual cost depends on the tenant and provider
+version and may remain after this lookup improvement.
+
+The automated before/after benchmark for this change used a shared test tenant
+with two policies. It showed faster lookup and matching planned values in that
+fixture, but it is not a representative-scale measurement and does not predict
+the total duration for a larger consumer tenant. Before claiming the consumer's
+end-to-end performance target is met, validate with a sequential, plan-only
+comparison at the consumer's scale and confirm planned environment membership,
+connector-catalog scope, and DLP resource configuration still match. Do not
+apply either benchmark plan.
+
 ### When to use `connectors_only`
 
 **Context A — IaC transition period:** The organization is progressively onboarding existing DLP policies to Terraform while PPAC or Power Automate flows continue to handle environment membership changes. Using `connectors_only` avoids conflicts during this overlap period.
@@ -115,7 +143,7 @@ The following resources are used by this module:
 
 - [powerplatform_data_loss_prevention_policy.this](https://registry.terraform.io/providers/microsoft/power-platform/latest/docs/resources/data_loss_prevention_policy) (resource)
 - [powerplatform_connectors.all](https://registry.terraform.io/providers/microsoft/power-platform/latest/docs/data-sources/connectors) (data source)
-- [powerplatform_data_loss_prevention_policies.current](https://registry.terraform.io/providers/microsoft/power-platform/latest/docs/data-sources/data_loss_prevention_policies) (data source)
+- [powerplatform_rest_query.live_policy](https://registry.terraform.io/providers/microsoft/power-platform/latest/docs/data-sources/rest_query) (data source)
 
 <!-- markdownlint-disable MD013 -->
 ## Required Inputs
@@ -131,6 +159,22 @@ Type: `string`
 ## Optional Inputs
 
 The following input variables are optional (have default values):
+
+### <a name="input_bapi_host"></a> [bapi\_host](#input\_bapi\_host)
+
+Description: Host of the Power Platform BAP API used for the connectors\_only live policy lookup. Override only for sovereign or government clouds.
+
+Type: `string`
+
+Default: `"api.bap.microsoft.com"`
+
+### <a name="input_bapi_scope"></a> [bapi\_scope](#input\_bapi\_scope)
+
+Description: OAuth scope used for the connectors\_only live policy lookup. Must match bapi\_host's cloud.
+
+Type: `string`
+
+Default: `"https://service.powerapps.com/.default"`
 
 ### <a name="input_business_connectors"></a> [business\_connectors](#input\_business\_connectors)
 

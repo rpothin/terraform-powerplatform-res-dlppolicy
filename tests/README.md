@@ -13,6 +13,7 @@ This directory contains Terraform native tests (`.tftest.hcl`) for the module.
 |-----------|------|-------------|---------|
 | `unit/` | Mock provider tests | None required | `command = plan` |
 | `integration/` | Real provider tests | OIDC required | `command = apply` |
+| `integration-connectors-only/` | Real-provider read-only policy lookup tests | OIDC and an existing policy fixture required | `command = plan` |
 
 ## Running Tests
 
@@ -37,6 +38,39 @@ export POWER_PLATFORM_CLIENT_ID=<your-client-id>
 terraform init -backend=false
 terraform test -test-directory=tests/integration
 ```
+
+### `connectors_only` Integration Tests
+
+These tests read an existing `OnlyEnvironments` policy and do not apply or
+modify it. Set `TF_VAR_existing_policy_id` to the fixture policy ID and provide
+the standard Power Platform OIDC environment variables, then run:
+
+```bash
+make test-integration-connectors-only
+```
+
+The Make target also runs
+`bash tests/integration-connectors-only/assert-missing-policy-fails.sh` with a
+nonexistent policy ID and verifies the direct plan fails with a 404/not-found
+diagnostic. Terraform's native `expect_failures` does not recognize this
+provider data-source diagnostic, so the shell assertion is the authoritative
+check. GitHub Actions reads the tenant and fixture configuration from repository
+secrets and variables.
+
+The pull request CI workflow runs the benchmark after the apply-based integration
+tests succeed. This uses the same OIDC event context as integration tests and
+prevents the read-only benchmark from overlapping tenant mutations. It runs
+sequential, plan-only comparisons of v0.1.4 and the candidate, fixes both runs to
+provider 4.2.1, checks plan parity, and writes only sanitized timing and
+comparison results to the workflow summary. The configured shared test tenant
+has two DLP policies, so this benchmark verifies the lookup change and plan
+parity in that fixture; it does not establish performance at a consumer's larger
+tenant scale. The change does not optimize connector-catalog reads or the
+provider / Terraform Plugin Framework processing of connector sets in the
+managed DLP resource. Validate end-to-end performance separately at the
+consumer's scale before claiming its runtime target is met. If the baseline plan
+fails, the runner still attempts the candidate plan as a read-only diagnostic
+control, but fails the benchmark without reporting paired timings or parity.
 
 ### All Tests
 
