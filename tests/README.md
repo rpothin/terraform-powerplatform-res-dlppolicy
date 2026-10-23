@@ -57,13 +57,14 @@ provider data-source diagnostic, so the shell assertion is the authoritative
 check. GitHub Actions reads the tenant and fixture configuration from repository
 secrets and variables.
 
-The CI workflow also has a manual `workflow_dispatch` benchmark job that runs
-independently of apply-based integration tests. It runs sequential, plan-only
-comparisons of v0.1.4 and the selected branch, fixes both runs to provider 4.2.1,
-checks plan parity, and writes only sanitized timing and comparison results to
-the workflow summary. If the baseline plan fails, the runner still attempts the
-candidate plan as a read-only diagnostic control, but fails the benchmark without
-reporting paired timings or parity.
+The pull request CI workflow runs the benchmark after the apply-based integration
+tests succeed. This uses the same OIDC event context as integration tests and
+prevents the read-only benchmark from overlapping tenant mutations. It runs
+sequential, plan-only comparisons of v0.1.4 and the candidate, fixes both runs to
+provider 4.2.1, checks plan parity, and writes only sanitized timing and
+comparison results to the workflow summary. If the baseline plan fails, the
+runner still attempts the candidate plan as a read-only diagnostic control, but
+fails the benchmark without reporting paired timings or parity.
 
 ### All Tests
 

@@ -144,7 +144,8 @@ jobs:
   connectors_only_benchmark:
     name: connectors_only Before/After Benchmark
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' && github.actor != 'dependabot[bot]' && vars.ENABLE_INTEGRATION_TESTS == 'true' && vars.INTEGRATION_TEST_EXISTING_POLICY_ID != ''
+    needs: integration
+    if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]' && vars.ENABLE_INTEGRATION_TESTS == 'true' && vars.INTEGRATION_TEST_EXISTING_POLICY_ID != '' && needs.integration.result == 'success'
     permissions:
       contents: read
       id-token: write
