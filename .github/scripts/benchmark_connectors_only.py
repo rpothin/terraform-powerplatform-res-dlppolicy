@@ -95,6 +95,15 @@ def pin_provider(module_dir: Path) -> None:
     config.write_text(pinned, encoding="utf-8")
 
 
+def add_baseline_policy_count_output(module_dir: Path) -> None:
+    (module_dir / "benchmark_output.tf").write_text(
+        'output "_benchmark_policy_count" {\n'
+        "  value = length(data.powerplatform_data_loss_prevention_policies.current[0].policies)\n"
+        "}\n",
+        encoding="utf-8",
+    )
+
+
 def parse_timestamp(value: str) -> dt.datetime:
     return dt.datetime.fromisoformat(value.replace("Z", "+00:00"))
 
@@ -248,16 +257,14 @@ def find_resource(plan: dict[str, Any], mode: str, resource_type: str, name: str
 
 
 def policy_count(plan: dict[str, Any]) -> int:
-    datasource = find_resource(
-        plan,
-        "data",
-        "powerplatform_data_loss_prevention_policies",
-        "current",
-    )
-    policies = datasource.get("values", {}).get("policies")
-    if not isinstance(policies, list):
-        fail("The baseline policy data source did not return a policy list.")
-    return len(policies)
+    output = plan.get("planned_values", {}).get("outputs", {}).get("_benchmark_policy_count", {})
+    count = output.get("value")
+    if count is None:
+        change = plan.get("output_changes", {}).get("_benchmark_policy_count", {}).get("change", {})
+        count = change.get("after")
+    if not isinstance(count, int) or isinstance(count, bool) or count < 0:
+        fail("The baseline policy data source did not return a readable policy count.")
+    return count
 
 
 def policy_resource_change(plan: dict[str, Any]) -> dict[str, Any]:
@@ -300,6 +307,7 @@ def main() -> None:
         candidate_dir.mkdir()
         archive_ref(workspace, BASELINE_REF, baseline_dir)
         archive_ref(workspace, candidate_ref, candidate_dir)
+        add_baseline_policy_count_output(baseline_dir)
         pin_provider(baseline_dir)
         pin_provider(candidate_dir)
 
