@@ -95,13 +95,25 @@ def pin_provider(module_dir: Path) -> None:
     config.write_text(pinned, encoding="utf-8")
 
 
-def add_baseline_policy_count_output(module_dir: Path) -> None:
-    (module_dir / "benchmark_output.tf").write_text(
-        'output "_benchmark_policy_count" {\n'
-        "  value = length(data.powerplatform_data_loss_prevention_policies.current[0].policies)\n"
-        "}\n",
-        encoding="utf-8",
-    )
+def add_benchmark_outputs(module_dir: Path, include_policy_count: bool) -> None:
+    output_file = module_dir / "benchmark_outputs.tf"
+    if output_file.exists():
+        fail(f"Benchmark output file already exists in {module_dir.name}.")
+    outputs = [
+        'output "_benchmark_catalog_environment_id" {',
+        "  value = data.powerplatform_connectors.all.environment_id",
+        "}",
+    ]
+    if include_policy_count:
+        outputs.extend(
+            [
+                "",
+                'output "_benchmark_policy_count" {',
+                "  value = length(data.powerplatform_data_loss_prevention_policies.current[0].policies)",
+                "}",
+            ]
+        )
+    output_file.write_text("\n".join(outputs) + "\n", encoding="utf-8")
 
 
 def parse_timestamp(value: str) -> dt.datetime:
@@ -257,14 +269,21 @@ def find_resource(plan: dict[str, Any], mode: str, resource_type: str, name: str
 
 
 def policy_count(plan: dict[str, Any]) -> int:
-    output = plan.get("planned_values", {}).get("outputs", {}).get("_benchmark_policy_count", {})
-    count = output.get("value")
-    if count is None:
-        change = plan.get("output_changes", {}).get("_benchmark_policy_count", {}).get("change", {})
-        count = change.get("after")
+    count = output_value(plan, "_benchmark_policy_count")
     if not isinstance(count, int) or isinstance(count, bool) or count < 0:
         fail("The baseline policy data source did not return a readable policy count.")
     return count
+
+
+def output_value(plan: dict[str, Any], name: str) -> Any:
+    output = plan.get("planned_values", {}).get("outputs", {}).get(name, {})
+    value = output.get("value")
+    if value is None:
+        change = plan.get("output_changes", {}).get(name, {}).get("change", {})
+        value = change.get("after")
+    if value is None:
+        fail(f"The benchmark output {name} was not known after planning.")
+    return value
 
 
 def policy_resource_change(plan: dict[str, Any]) -> dict[str, Any]:
@@ -307,7 +326,8 @@ def main() -> None:
         candidate_dir.mkdir()
         archive_ref(workspace, BASELINE_REF, baseline_dir)
         archive_ref(workspace, candidate_ref, candidate_dir)
-        add_baseline_policy_count_output(baseline_dir)
+        add_benchmark_outputs(baseline_dir, include_policy_count=True)
+        add_benchmark_outputs(candidate_dir, include_policy_count=False)
         pin_provider(baseline_dir)
         pin_provider(candidate_dir)
 
@@ -384,21 +404,9 @@ def main() -> None:
         candidate_environments = sorted(candidate_policy.get("values", {}).get("environments", []))
         environments_match = baseline_environments == candidate_environments
 
-        baseline_catalog = find_resource(
-            baseline_full_plan,
-            "data",
-            "powerplatform_connectors",
-            "all",
-        )
-        candidate_catalog = find_resource(
-            candidate_full_plan,
-            "data",
-            "powerplatform_connectors",
-            "all",
-        )
         catalog_environment_match = (
-            baseline_catalog.get("values", {}).get("environment_id")
-            == candidate_catalog.get("values", {}).get("environment_id")
+            output_value(baseline_full_plan, "_benchmark_catalog_environment_id")
+            == output_value(candidate_full_plan, "_benchmark_catalog_environment_id")
         )
         resource_plan_match = (
             policy_resource_change(baseline_full_plan)
