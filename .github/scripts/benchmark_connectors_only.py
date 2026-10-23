@@ -28,7 +28,8 @@ TRACE_VERTEX_PATTERN = re.compile(
     r"(?P<event>starting visit|visit complete)"
 )
 HTTP_ERROR_STATUS_PATTERN = re.compile(
-    r"(?i)\b(?:HTTP/[\d.]+|HTTP(?: status)?|status(?: code)?|statuscode)\s*[:=]?\s*([45]\d{2})\b"
+    r"(?i)(?:\bHTTP/[\d.]+\s+|\bHTTP(?:[_ ]status)?\s*[:=]?\s*|"
+    r"\bstatus(?:[_ ]?code)?\s*[:=]?\s*|\breceived\s*:\s*\[?\s*)([45]\d{2})\b"
 )
 
 
