@@ -20,6 +20,9 @@ PROVIDER_VERSION = "4.1.0"
 POLICY_ID_PATTERN = re.compile(
     r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
 )
+UUID_PATTERN = re.compile(
+    r"(?i)\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b"
+)
 TRACE_VERTEX_PATTERN = re.compile(
     r'^(?P<timestamp>\S+)\s+\[TRACE\].*vertex "(?P<address>[^"]+)": '
     r"(?P<event>starting visit|visit complete)"
@@ -88,6 +91,13 @@ def parse_timestamp(value: str) -> dt.datetime:
     return dt.datetime.fromisoformat(value.replace("Z", "+00:00"))
 
 
+def safe_diagnostic(value: str) -> str:
+    value = re.sub(r"https?://\S+", "<redacted-url>", value)
+    value = UUID_PATTERN.sub("<redacted-id>", value)
+    value = re.sub(r"(?i)\bBearer\s+\S+", "Bearer <redacted>", value)
+    return value.strip(" │\t")
+
+
 def run_plan(
     module_dir: Path,
     plan_path: Path,
@@ -107,6 +117,7 @@ def run_plan(
     start_time = time.monotonic()
     target_start: dt.datetime | None = None
     target_durations: list[float] = []
+    diagnostics: list[str] = []
     process = subprocess.Popen(
         command,
         cwd=module_dir,
@@ -120,6 +131,9 @@ def run_plan(
     )
     assert process.stdout is not None
     for line in process.stdout:
+        diagnostic = re.search(r"(?:^|\s)│?\s*Error:\s*(.*)", line)
+        if diagnostic is not None:
+            diagnostics.append(safe_diagnostic(diagnostic.group(1)))
         match = TRACE_VERTEX_PATTERN.match(line)
         if match is None or match.group("address") != trace_address:
             continue
@@ -135,7 +149,11 @@ def run_plan(
     return_code = process.wait()
     elapsed = time.monotonic() - start_time
     if return_code:
-        fail(f"Terraform plan failed in {module_dir.name} (exit code {return_code}); raw logs were suppressed.")
+        summary = diagnostics[0] if diagnostics else "no sanitized Terraform diagnostic was available"
+        fail(
+            f"Terraform plan failed in {module_dir.name} (exit code {return_code}): "
+            f"{summary}. Raw logs were suppressed."
+        )
     if target_start is not None:
         fail(f"Terraform trace ended during a visit to {trace_address}.")
     if len(target_durations) != 1:
