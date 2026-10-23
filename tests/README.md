@@ -13,6 +13,7 @@ This directory contains Terraform native tests (`.tftest.hcl`) for the module.
 |-----------|------|-------------|---------|
 | `unit/` | Mock provider tests | None required | `command = plan` |
 | `integration/` | Real provider tests | OIDC required | `command = apply` |
+| `integration-connectors-only/` | Real-provider read-only policy lookup tests | OIDC and an existing policy fixture required | `command = plan` |
 
 ## Running Tests
 
@@ -37,6 +38,28 @@ export POWER_PLATFORM_CLIENT_ID=<your-client-id>
 terraform init -backend=false
 terraform test -test-directory=tests/integration
 ```
+
+### `connectors_only` Integration Tests
+
+These tests read an existing `OnlyEnvironments` policy and do not apply or
+modify it. Set `TF_VAR_existing_policy_id` to the fixture policy ID and provide
+the standard Power Platform OIDC environment variables, then run:
+
+```bash
+make test-integration-connectors-only
+```
+
+The suite includes a nonexistent-policy test. Terraform's native
+`expect_failures` checks the data source failure, and the Make target also runs
+`bash tests/integration-connectors-only/assert-missing-policy-fails.sh` to verify
+that a direct plan fails with a 404/not-found diagnostic. GitHub Actions reads
+the tenant and fixture configuration from repository secrets and variables.
+
+The CI workflow also has a manual `workflow_dispatch` benchmark job that runs
+independently of apply-based integration tests. It runs sequential, plan-only
+comparisons of v0.1.4 and the selected branch, fixes both runs to provider 4.1.0,
+checks plan parity, and writes only sanitized timing and comparison results to
+the workflow summary.
 
 ### All Tests
 

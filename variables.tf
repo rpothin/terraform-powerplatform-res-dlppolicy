@@ -58,6 +58,30 @@ variable "existing_policy_id" {
   }
 }
 
+variable "bapi_host" {
+  description = "Host of the Power Platform BAP API used for the connectors_only live policy lookup. Override only for sovereign or government clouds."
+  type        = string
+  nullable    = false
+  default     = "api.bap.microsoft.com"
+
+  validation {
+    condition     = can(regex("^[a-z0-9.-]+$", var.bapi_host))
+    error_message = "bapi_host must be a bare host name (no scheme, path, or trailing slash)."
+  }
+}
+
+variable "bapi_scope" {
+  description = "OAuth scope used for the connectors_only live policy lookup. Must match bapi_host's cloud."
+  type        = string
+  nullable    = false
+  default     = "https://service.powerapps.com/.default"
+
+  validation {
+    condition     = length(trimspace(var.bapi_scope)) > 0
+    error_message = "bapi_scope must not be empty or whitespace."
+  }
+}
+
 variable "environments" {
   description = "A list of environment IDs to include or exclude depending on environment_type. Required when environment_type is OnlyEnvironments or ExceptEnvironments and management_mode is 'full'. Ignored when management_mode is 'connectors_only' — environment membership is read live from the API in that mode. Each value must be a valid UUID (case-insensitive). Use lower() in HCL to normalise IDs copied from the Power Platform admin center."
   type        = list(string)

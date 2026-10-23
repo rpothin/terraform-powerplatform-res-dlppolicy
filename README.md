@@ -35,6 +35,15 @@ The `management_mode` variable controls whether Terraform manages both connector
 | `full` (default) | Terraform is fully authoritative: manages connector classification **and** the policy's environment list. `var.environments` is the source of truth. |
 | `connectors_only` | Terraform manages connector classification only. The environment list is read from the live API on every plan/apply and passed back unchanged — effectively a no-op on environments. Suitable when an external process (Power Automate, PPAC) owns environment membership. Only valid for `OnlyEnvironments` policies. Requires `existing_policy_id`. |
 
+In `connectors_only` mode, the module reads only the policy identified by
+`existing_policy_id` with one BAP API GET; it does not enumerate tenant policies.
+A missing policy or unsuccessful API response fails the plan rather than being
+treated as an empty environment list. The optional `bapi_host` and `bapi_scope`
+variables default to public-cloud values and can be paired for sovereign or
+government clouds. They have no effect in `full` mode, which makes no live policy
+REST request. The read uses the provider's configured authentication and requires
+the same BAP policy-read access as the previous tenant-wide policy data source.
+
 ### When to use `connectors_only`
 
 **Context A — IaC transition period:** The organization is progressively onboarding existing DLP policies to Terraform while PPAC or Power Automate flows continue to handle environment membership changes. Using `connectors_only` avoids conflicts during this overlap period.
@@ -115,7 +124,7 @@ The following resources are used by this module:
 
 - [powerplatform_data_loss_prevention_policy.this](https://registry.terraform.io/providers/microsoft/power-platform/latest/docs/resources/data_loss_prevention_policy) (resource)
 - [powerplatform_connectors.all](https://registry.terraform.io/providers/microsoft/power-platform/latest/docs/data-sources/connectors) (data source)
-- [powerplatform_data_loss_prevention_policies.current](https://registry.terraform.io/providers/microsoft/power-platform/latest/docs/data-sources/data_loss_prevention_policies) (data source)
+- [powerplatform_rest_query.live_policy](https://registry.terraform.io/providers/microsoft/power-platform/latest/docs/data-sources/rest_query) (data source)
 
 <!-- markdownlint-disable MD013 -->
 ## Required Inputs
@@ -131,6 +140,22 @@ Type: `string`
 ## Optional Inputs
 
 The following input variables are optional (have default values):
+
+### <a name="input_bapi_host"></a> [bapi\_host](#input\_bapi\_host)
+
+Description: Host of the Power Platform BAP API used for the connectors\_only live policy lookup. Override only for sovereign or government clouds.
+
+Type: `string`
+
+Default: `"api.bap.microsoft.com"`
+
+### <a name="input_bapi_scope"></a> [bapi\_scope](#input\_bapi\_scope)
+
+Description: OAuth scope used for the connectors\_only live policy lookup. Must match bapi\_host's cloud.
+
+Type: `string`
+
+Default: `"https://service.powerapps.com/.default"`
 
 ### <a name="input_business_connectors"></a> [business\_connectors](#input\_business\_connectors)
 

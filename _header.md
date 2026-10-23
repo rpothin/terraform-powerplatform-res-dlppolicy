@@ -33,6 +33,15 @@ The `management_mode` variable controls whether Terraform manages both connector
 | `full` (default) | Terraform is fully authoritative: manages connector classification **and** the policy's environment list. `var.environments` is the source of truth. |
 | `connectors_only` | Terraform manages connector classification only. The environment list is read from the live API on every plan/apply and passed back unchanged — effectively a no-op on environments. Suitable when an external process (Power Automate, PPAC) owns environment membership. Only valid for `OnlyEnvironments` policies. Requires `existing_policy_id`. |
 
+In `connectors_only` mode, the module reads only the policy identified by
+`existing_policy_id` with one BAP API GET; it does not enumerate tenant policies.
+A missing policy or unsuccessful API response fails the plan rather than being
+treated as an empty environment list. The optional `bapi_host` and `bapi_scope`
+variables default to public-cloud values and can be paired for sovereign or
+government clouds. They have no effect in `full` mode, which makes no live policy
+REST request. The read uses the provider's configured authentication and requires
+the same BAP policy-read access as the previous tenant-wide policy data source.
+
 ### When to use `connectors_only`
 
 **Context A — IaC transition period:** The organization is progressively onboarding existing DLP policies to Terraform while PPAC or Power Automate flows continue to handle environment membership changes. Using `connectors_only` avoids conflicts during this overlap period.

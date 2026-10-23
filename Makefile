@@ -19,6 +19,7 @@ test-integration: init
 
 test-integration-connectors-only: init
 	terraform test -test-directory=tests/integration-connectors-only
+	bash tests/integration-connectors-only/assert-missing-policy-fails.sh
 
 docs:
 	terraform-docs .

@@ -2,10 +2,15 @@ data "powerplatform_connectors" "all" {
   environment_id = local._connector_catalog_environment_id
 }
 
-# Fetches all live DLP policies to read the current environment membership.
-# Only provisioned in connectors_only mode to avoid unnecessary API calls in full mode.
-data "powerplatform_data_loss_prevention_policies" "current" {
-  count = var.management_mode == "connectors_only" ? 1 : 0
+# Reads only the target policy's live environment membership.
+# The provider returns a diagnostic for non-2xx responses when only 200 is expected.
+data "powerplatform_rest_query" "live_policy" {
+  count = var.management_mode == "connectors_only" && var.existing_policy_id != null ? 1 : 0
+
+  method               = "GET"
+  scope                = var.bapi_scope
+  url                  = "https://${var.bapi_host}/providers/PowerPlatform.Governance/v2/policies/${lower(var.existing_policy_id)}"
+  expected_http_status = [200]
 }
 
 resource "powerplatform_data_loss_prevention_policy" "this" {
@@ -37,8 +42,13 @@ resource "powerplatform_data_loss_prevention_policy" "this" {
     }
 
     precondition {
-      condition     = var.management_mode != "connectors_only" || var.existing_policy_id == null || length(local._live_matched_policy) > 0
-      error_message = "management_mode 'connectors_only': no live DLP policy found matching existing_policy_id. Verify the ID is correct and the policy exists in the tenant."
+      condition     = var.management_mode != "connectors_only" || var.existing_policy_id == null || (local._live_policy != null && lower(try(local._live_policy.name, "")) == lower(var.existing_policy_id))
+      error_message = "management_mode 'connectors_only': the live DLP policy returned by the API does not match existing_policy_id. Verify the ID is correct and the policy exists in the tenant."
+    }
+
+    precondition {
+      condition     = var.management_mode != "connectors_only" || var.existing_policy_id == null || local._live_policy_environments_valid
+      error_message = "management_mode 'connectors_only': the live DLP policy response must contain an environments array with a non-empty name for each environment."
     }
   }
 }

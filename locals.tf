@@ -1,27 +1,37 @@
 locals {
-  # Flat list of all live DLP policies; populated only when management_mode = "connectors_only".
-  # Uses the flatten+for pattern so that when count = 0 (full mode) the result is safely [].
-  _all_live_policies = flatten([
-    for d in data.powerplatform_data_loss_prevention_policies.current : d.policies
-  ])
+  # The response is fetched only in connectors_only mode when an ID is supplied.
+  # jsondecode and required attribute access intentionally have no empty-list fallback.
+  _live_policy = (
+    length(data.powerplatform_rest_query.live_policy) > 0
+    ? jsondecode(data.powerplatform_rest_query.live_policy[0].output.body).policyDefinition
+    : null
+  )
 
-  # Zero-or-one-element list of the live policy whose id matches existing_policy_id.
-  # A lifecycle precondition guarantees this is non-empty at apply time in connectors_only mode.
-  # Comparison is case-insensitive: GUIDs from the API and from the user may differ in case.
-  # The null guard ensures the lower() call is never applied to a null value when
-  # existing_policy_id is not set (full mode or precondition 3 not yet evaluated).
-  _live_matched_policy = [
-    for p in local._all_live_policies : p
-    if var.existing_policy_id != null && lower(p.id) == lower(var.existing_policy_id)
-  ]
+  # An explicitly empty environments array is valid; absent, null, or malformed
+  # environment data must fail its resource precondition.
+  _live_policy_environments_valid = (
+    length(data.powerplatform_rest_query.live_policy) == 0
+    ? true
+    : try(
+      local._live_policy.environments != null &&
+      alltrue([
+        for environment in local._live_policy.environments :
+        environment.name != null && length(trimspace(environment.name)) > 0
+      ]),
+      false
+    )
+  )
 
   # Environment list passed to the resource:
   # - full mode: var.environments (sorted deterministically by the resource attribute).
-  # - connectors_only mode: live environment set from the API, converted to a list for sort().
-  #   Falls back to [] if no match; the lifecycle precondition guarantees a match at apply time.
+  # - connectors_only mode: live environment names from the single-policy API response.
   effective_environments = (
     var.management_mode == "connectors_only"
-    ? (length(local._live_matched_policy) > 0 ? tolist(local._live_matched_policy[0].environments) : [])
+    ? (length(data.powerplatform_rest_query.live_policy) > 0
+      ? (local._live_policy_environments_valid
+        ? [for environment in local._live_policy.environments : environment.name]
+      : [])
+    : [])
     : var.environments
   )
 
@@ -32,7 +42,9 @@ locals {
     var.environment_type != "OnlyEnvironments"
     ? null
     : var.management_mode == "connectors_only"
-    ? (length(local.effective_environments) > 0 ? sort(local.effective_environments)[0] : null)
+    ? (local._live_policy_environments_valid
+      ? (length(local.effective_environments) > 0 ? sort(local.effective_environments)[0] : null)
+    : null)
     : (length(var.environments) > 0 ? var.environments[0] : null)
   )
 
