@@ -61,7 +61,9 @@ The CI workflow also has a manual `workflow_dispatch` benchmark job that runs
 independently of apply-based integration tests. It runs sequential, plan-only
 comparisons of v0.1.4 and the selected branch, fixes both runs to provider 4.2.1,
 checks plan parity, and writes only sanitized timing and comparison results to
-the workflow summary.
+the workflow summary. If the baseline plan fails, the runner still attempts the
+candidate plan as a read-only diagnostic control, but fails the benchmark without
+reporting paired timings or parity.
 
 ### All Tests
 

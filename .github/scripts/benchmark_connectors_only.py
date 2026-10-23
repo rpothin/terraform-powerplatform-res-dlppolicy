@@ -33,6 +33,10 @@ HTTP_ERROR_STATUS_PATTERN = re.compile(
 )
 
 
+class PlanFailure(RuntimeError):
+    pass
+
+
 def fail(message: str) -> None:
     print(f"::error::{message}", file=sys.stderr)
     raise SystemExit(1)
@@ -190,7 +194,7 @@ def run_plan(
         if diagnostic_categories:
             categories = ", ".join(sorted(diagnostic_categories))
             summary = f"{summary} (diagnostic category: {categories})"
-        fail(
+        raise PlanFailure(
             f"Terraform plan failed in {module_dir.name} (exit code {return_code}): "
             f"{summary}. Raw logs were suppressed."
         )
@@ -323,12 +327,29 @@ def main() -> None:
 
         baseline_policy_address = "data.powerplatform_data_loss_prevention_policies.current[0]"
         candidate_policy_address = "data.powerplatform_rest_query.live_policy[0]"
-        baseline_full_duration, baseline_lookup_duration = run_plan(
-            baseline_dir,
-            temp / "baseline-full.tfplan",
-            baseline_policy_address,
-            env,
-        )
+        try:
+            baseline_full_duration, baseline_lookup_duration = run_plan(
+                baseline_dir,
+                temp / "baseline-full.tfplan",
+                baseline_policy_address,
+                env,
+            )
+        except PlanFailure as baseline_error:
+            try:
+                run_plan(
+                    candidate_dir,
+                    temp / "candidate-diagnostic.tfplan",
+                    candidate_policy_address,
+                    env,
+                )
+            except PlanFailure as candidate_error:
+                fail(f"{baseline_error} Candidate control also failed: {candidate_error}")
+            print(
+                f"Candidate diagnostic plan succeeded after the baseline failure. "
+                f"{baseline_error} No paired benchmark or parity result was produced.",
+                flush=True,
+            )
+            fail("The v0.1.4 baseline plan failed; no before/after benchmark was produced.")
         candidate_full_duration, candidate_lookup_duration = run_plan(
             candidate_dir,
             temp / "candidate-full.tfplan",
