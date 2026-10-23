@@ -16,7 +16,7 @@ from typing import Any
 
 
 BASELINE_REF = "v0.1.4"
-PROVIDER_VERSION = "4.1.0"
+PROVIDER_VERSION = "4.2.1"
 POLICY_ID_PATTERN = re.compile(
     r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
 )
@@ -364,7 +364,7 @@ def main() -> None:
                 f"| Target policy data-source read | {minutes(baseline_lookup_duration)} | {minutes(candidate_lookup_duration)} |",
                 f"| Full plan | {minutes(baseline_full_duration)} | {minutes(candidate_full_duration)} |",
                 "",
-                "| Logical policy API request pattern (provider 4.1.0; retries excluded) | Result |",
+                f"| Logical policy API request pattern (provider {PROVIDER_VERSION}; retries excluded) | Result |",
                 "|---|---|",
                 f"| v0.1.4 | 1 tenant policy list + {baseline_policy_total} per-policy GETs |",
                 "| Candidate | 1 GET `/providers/PowerPlatform.Governance/v2/policies/{policy-id}` |",
@@ -373,7 +373,7 @@ def main() -> None:
                 "- Connector catalog `environment_id`: **MATCH** (identifier omitted).",
                 "- Planned DLP resource actions and configuration JSON: **MATCH**.",
                 "- Plans were never applied. Because no state backend is used, resource parity compares the planned resource configuration/actions between versions; it does not claim a no-op against a separately managed remote state.",
-                "- Provider 4.1.0 does not log successful HTTP request URLs; logical request counts/routes above are derived from its data-source implementation and the returned baseline policy count. Raw trace output was streamed and discarded.",
+                "- The provider does not log successful HTTP request URLs; logical request counts/routes above are derived from its data-source implementation and the returned baseline policy count. Raw trace output was streamed and discarded.",
             ]
         )
         print(report)

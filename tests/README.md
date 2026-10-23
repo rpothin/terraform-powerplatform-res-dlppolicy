@@ -49,15 +49,17 @@ the standard Power Platform OIDC environment variables, then run:
 make test-integration-connectors-only
 ```
 
-The suite includes a nonexistent-policy test. Terraform's native
-`expect_failures` checks the data source failure, and the Make target also runs
-`bash tests/integration-connectors-only/assert-missing-policy-fails.sh` to verify
-that a direct plan fails with a 404/not-found diagnostic. GitHub Actions reads
-the tenant and fixture configuration from repository secrets and variables.
+The Make target also runs
+`bash tests/integration-connectors-only/assert-missing-policy-fails.sh` with a
+nonexistent policy ID and verifies the direct plan fails with a 404/not-found
+diagnostic. Terraform's native `expect_failures` does not recognize this
+provider data-source diagnostic, so the shell assertion is the authoritative
+check. GitHub Actions reads the tenant and fixture configuration from repository
+secrets and variables.
 
 The CI workflow also has a manual `workflow_dispatch` benchmark job that runs
 independently of apply-based integration tests. It runs sequential, plan-only
-comparisons of v0.1.4 and the selected branch, fixes both runs to provider 4.1.0,
+comparisons of v0.1.4 and the selected branch, fixes both runs to provider 4.2.1,
 checks plan parity, and writes only sanitized timing and comparison results to
 the workflow summary.
 
